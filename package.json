@@ -1,0 +1,14 @@
+{
+  "name": "stationeers.modding.exporter",
+  "version": "1.0.32",
+  "displayName": "Stationeers Modding Exporter",
+  "description": "A Unity Editor-only package to create/export LaunchPad mods.",
+  "unity": "2021.3",
+  "keywords": [
+    "editor",
+    "tools"
+  ],
+  "author": {
+    "name": "Stationeers Modding Team"
+  }
+}
