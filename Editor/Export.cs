@@ -64,7 +64,7 @@ namespace stationeers.modding.exporter
 
         private void ExportModAssemblies()
         {
-            LogUtility.LogDebug("Exporting mod assemblies...");
+            LogUtility.LogInfo("Exporting mod assemblies...");
             foreach (var asmDefPath in settings.Assemblies)
             {
                 var json = File.ReadAllText(asmDefPath);
@@ -98,7 +98,7 @@ namespace stationeers.modding.exporter
         private void ExportCopyAssets()
         {
             List<string> list = AssetDatabase.GetAllAssetPaths().Where(o => { /*LogUtility.LogDebug("Assetpath:" + o);*/ return o.StartsWith("Assets/GameData"); }).ToList();
-            LogUtility.LogDebug("Exporting copy assets...");
+            LogUtility.LogInfo("Exporting copy assets...");
             string gamedata = Path.Combine("Assets", "GameData");
             string about = Path.Combine("Assets", "About");
             var dir = new DirectoryInfo(gamedata);
@@ -155,7 +155,7 @@ namespace stationeers.modding.exporter
                 var platform = target.GetModPlatform().ToString();
                 var subDir = Path.Combine(tempModDirectory, platform);
                 Directory.CreateDirectory(subDir);
-                Debug.Log($"Exporting assets for {platform} to: {subDir}");
+                LogUtility.LogInfo($"Exporting assets for {platform} to: {subDir}");
                 BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, target);
             });
         }
@@ -182,7 +182,7 @@ namespace stationeers.modding.exporter
                 if (Directory.Exists(modDirectory))
                     Directory.Delete(modDirectory, true);
 
-                Debug.Log($"Copying {tempModDirectory} => {modDirectory}");
+                LogUtility.LogInfo($"Copying {tempModDirectory} => {modDirectory}");
                 CopyAll(tempModDirectory, modDirectory);
                 LogUtility.LogInfo($"Export completed: {modDirectory}");
             }

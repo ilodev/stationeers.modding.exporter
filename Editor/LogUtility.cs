@@ -19,7 +19,8 @@ namespace stationeers.modding.exporter
         /// <param name="message">The debug message.</param>
         public static void LogDebug(object message)
         {
-            Debug.Log(message);
+            if (logLevel >= LogLevel.Debug)
+                Debug.Log(message);
         }
 
         /// <summary>
@@ -28,7 +29,8 @@ namespace stationeers.modding.exporter
         /// <param name="message">The message.</param>
         public static void LogInfo(object message)
         {
-            Debug.Log(message);
+            if (logLevel >= LogLevel.Info)
+                Debug.Log(message);
         }
 
         /// <summary>
@@ -37,7 +39,8 @@ namespace stationeers.modding.exporter
         /// <param name="message">The warning message.</param>
         public static void LogWarning(object message)
         {
-            Debug.Log(message);
+            if (logLevel >= LogLevel.Warning)
+                Debug.Log(message);
         }
 
         /// <summary>
@@ -46,7 +49,8 @@ namespace stationeers.modding.exporter
         /// <param name="message">The error message</param>
         public static void LogError(object message)
         {
-            Debug.Log(message);
+            if (logLevel >= LogLevel.Error)
+                Debug.Log(message);
         }
 
         /// <summary>
