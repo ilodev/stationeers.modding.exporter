@@ -13,7 +13,7 @@ namespace stationeers.modding.exporter
         
         public override void DrawHelpBox()
         {
-            EditorGUILayout.HelpBox("Add asmdefs from your project to be exported into your mod.", MessageType.Info, true);
+            //EditorGUILayout.HelpBox("Add asmdefs from your project to be exported into your mod.", MessageType.Info, true);
         }
 
         public override List<string> GetCandidates(ExportSettings settings)

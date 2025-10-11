@@ -121,7 +121,7 @@ namespace stationeers.modding.exporter
 
             var settings = exportSettings.instance;
 
-            var tabs = new string[] { "Export", "Assemblies", "Copy Artifacts", "Development" };
+            var tabs = new string[] { "Export", "Copy Artifacts", "Development" };
 
             selectedTab = GUILayout.Toolbar(selectedTab, tabs);
 
@@ -129,9 +129,6 @@ namespace stationeers.modding.exporter
             {
                 case "Export":
                     DrawExportEditor(settings);
-                    break;
-                case "Assemblies":
-                    settings.Assemblies = assemblyEditor.Draw(settings);
                     break;
                 case "Copy Artifacts":
                     settings.Artifacts = artifactEditor.Draw(settings);

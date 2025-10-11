@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +12,9 @@ namespace stationeers.modding.exporter
 
     class ExportEditor
     {
+
+        private readonly AssemblyEditor _assemblyEditor = new AssemblyEditor();
+
         private void DrawSection(Action thunk)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.ExpandWidth(true));
@@ -99,6 +103,78 @@ namespace stationeers.modding.exporter
             LogUtility.logLevel = (LogLevel)EditorGUILayout.EnumPopup("Log Level:", LogUtility.logLevel);
         }
 
+        private void DrawAssembliesInline(ExportSettings settings)
+        {
+            DrawSection(() =>
+            {
+                EditorGUILayout.LabelField("Assemblies", EditorStyles.boldLabel);
+
+                // reuse your AssemblyEditor’s help/candidates API
+                _assemblyEditor.DrawHelpBox();
+
+                var candidates = _assemblyEditor.GetCandidates(settings)
+                    .Distinct()
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (candidates.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("No Assembly Definition Assets found in this project.", MessageType.Info);
+                    if (GUILayout.Button("Refresh"))
+                        _assemblyEditor.ClearCandidates();
+                    return;
+                }
+
+                // Display names for the dropdown (nice names from paths)
+                var display = candidates
+                    .Select(p => Path.GetFileNameWithoutExtension(p))
+                    .ToArray();
+
+                // Work on a list for add/remove convenience
+                var selections = (settings.Assemblies ?? Array.Empty<string>()).ToList();
+
+                for (int i = 0; i < selections.Count; i++)
+                {
+                    EditorGUILayout.BeginHorizontal();
+
+                    // find the current index in candidates; fallback to first
+                    var currentIdx = Math.Max(0, candidates.IndexOf(selections[i]));
+                    var newIdx = EditorGUILayout.Popup("", currentIdx, display);
+                    selections[i] = candidates[newIdx];
+
+                    if (GUILayout.Button("-", GUILayout.Width(24)))
+                    {
+                        selections.RemoveAt(i);
+                        settings.Assemblies = selections.ToArray();
+                        GUIUtility.ExitGUI(); // avoid layout issues after removal
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                EditorGUILayout.Space(6);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Add Assembly", GUILayout.Width(120)))
+                {
+                    // add the first unused candidate (or first if all used)
+                    var firstUnused = candidates.FirstOrDefault(c => !selections.Contains(c));
+                    selections.Add(firstUnused ?? candidates[0]);
+                }
+                if (GUILayout.Button("Refresh", GUILayout.Width(90)))
+                {
+                    _assemblyEditor.ClearCandidates();
+                }
+                EditorGUILayout.EndHorizontal();
+
+                // write back to settings
+                settings.Assemblies = selections.ToArray();
+
+                // (Optional) validation if you require at least one assembly:
+                // if (settings.Assemblies.Length == 0)
+                //     throw new ExportValidationError("You must select at least one assembly definition.");
+            });
+        }
+
         private void DrawExportOptions(ExportSettings settings)
         {
             DrawSection(() => {
@@ -114,6 +190,7 @@ namespace stationeers.modding.exporter
             DrawAlert(settings);
             DrawDetails(settings);
             DrawContentSection(settings);
+            DrawAssembliesInline(settings);
             DrawExportOptions(settings);
         }
 
