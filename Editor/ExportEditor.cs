@@ -72,6 +72,7 @@ namespace stationeers.modding.exporter
         {
             GUI.enabled = false;
             DrawSection(() => {
+                EditorGUILayout.LabelField("Project Assets", EditorStyles.boldLabel);
                 DrawContentSelector(settings);
             });
             GUI.enabled = true;
@@ -107,7 +108,7 @@ namespace stationeers.modding.exporter
         {
             DrawSection(() =>
             {
-                EditorGUILayout.LabelField("Assemblies", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Assembly definitions", EditorStyles.boldLabel);
 
                 // reuse your AssemblyEditor’s help/candidates API
                 _assemblyEditor.DrawHelpBox();

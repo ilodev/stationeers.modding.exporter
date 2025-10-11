@@ -1,11 +1,6 @@
 ﻿using UnityEditor;
 using UnityEngine;
-
-using System.Linq;
-using System.IO;
 using System.Collections.Generic;
-using System;
-using System.Diagnostics;
 
 namespace stationeers.modding.exporter
 {
@@ -44,7 +39,6 @@ namespace stationeers.modding.exporter
             var window = GetWindow<ExporterEditorWindow>();
             window.titleContent = new GUIContent("LaunchPad Exporter");
             window.minSize = new Vector2(450, 320);
-            ExtraAssetsWindow.ShowWindow();
             window.Focus();
         }
 
