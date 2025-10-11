@@ -7,10 +7,8 @@ namespace stationeers.modding.exporter
     public class ExporterEditorWindow : EditorWindow
     {
         private EditorScriptableSingleton<ExportSettings> exportSettings;
-        //private ExportSettingsEditor exportSettingsEditor;
 
         private int selectedTab = 0;
-        // private int selectedPath = 0;
         private List<string> addedAsmdefs = new List<string>();
 
         ExportEditor exportEditor;
@@ -33,7 +31,7 @@ namespace stationeers.modding.exporter
             return shortString;
         }
 
-        [MenuItem("Modding/Export Settings")]
+        [MenuItem("LaunchPad/Export Settings")]
         public static void ShowWindow()
         {
             var window = GetWindow<ExporterEditorWindow>();
@@ -42,13 +40,13 @@ namespace stationeers.modding.exporter
             window.Focus();
         }
 
-        [MenuItem("Modding/Export Mod", false, 20)]
+        [MenuItem("LaunchPad/Export Mod", false, 20)]
         public static void ExportModMenuItem()
         {
             ExportMod();
         }
 
-        [MenuItem("Modding/Export && Run Mod", false, 20)]
+        [MenuItem("LaunchPad/Export && Run Mod", false, 20)]
         public static void ExportAndRunModMenuItem()
         {
             ExportMod();
@@ -58,7 +56,6 @@ namespace stationeers.modding.exporter
         private void OnEnable()
         {
             exportSettings = new EditorScriptableSingleton<ExportSettings>();
-            //exportSettingsEditor = UnityEditor.Editor.CreateEditor(exportSettings.instance) as ExportSettingsEditor;
             assemblyEditor = new AssemblyEditor();
             artifactEditor = new ArtifactEditor();
             developmentEditor = new DevelopmentEditor(exportSettings.instance);
