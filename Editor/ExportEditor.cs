@@ -64,18 +64,10 @@ namespace stationeers.modding.exporter
             settings.IncludePdbs = EditorGUILayout.Toggle("Include Pdb's:", settings.IncludePdbs);
         }
 
-        private void DrawStartupSelector(ExportSettings settings)
-        {
-            settings.StartupClass = EditorGUILayout.TextField("Startup class:", settings.StartupClass);
-            if (settings.StartupClass == "")
-                throw new ExportValidationError("You must specify a class in your assembly.");
-        }
-
         private void DrawContentSection(ExportSettings settings)
         {
             DrawSection(() => {
                 DrawContentSelector(settings);
-                DrawStartupSelector(settings);
             });
         }
         private void DrawDirectorySelector(ExportSettings settings)

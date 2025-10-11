@@ -92,12 +92,8 @@ namespace stationeers.modding.exporter
             if (!Patcher.DevelopmentModeEnabled.HasValue)
             {
                 GUI.enabled = false;
-
-                EditorApplication.delayCall += () =>
-                {
-                    GUILayout.Button("Enable development mode", GUILayout.Width(buttonWidth), GUILayout.Height(35));
-                    GUI.enabled = true;
-                };
+                GUILayout.Button("Enable development mode", GUILayout.Width(buttonWidth), GUILayout.Height(35));
+                GUI.enabled = true;
             }
             else
             {
@@ -105,6 +101,7 @@ namespace stationeers.modding.exporter
                 {
                     if (GUILayout.Button("Enable development mode", GUILayout.Width(buttonWidth), GUILayout.Height(35)))
                     {
+                        // Logic is deferred, NOT UI
                         EditorApplication.delayCall += () =>
                         {
                             try
@@ -112,7 +109,7 @@ namespace stationeers.modding.exporter
                                 Patcher.SetDevelopmentMode(settings, true);
                             }
                             catch (ArgumentException ex)
-                            { 
+                            {
                                 EditorUtility.DisplayDialog("Error", ex.Message, "OK");
                             }
                         };

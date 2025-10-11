@@ -41,13 +41,7 @@ namespace stationeers.modding.exporter
 
         // We only allow code as entry point from now on
         [SerializeField] private BootType _bootType = BootType.entrypoint;
-
-        [SerializeField] private GameObject _startupPrefab;
-
-        [SerializeField] private string _startupClass;
-
-        [SerializeField] private string _startupScene;
-
+                
         /// <summary>
         ///     The Mod's name.
         /// </summary>
@@ -105,12 +99,6 @@ namespace stationeers.modding.exporter
         public bool WaitForDebugger { get => _waitForDebugger; set => _waitForDebugger = value; }
 
         public BootType BootType { get => _bootType; set => _bootType =value;}
-
-        public string StartupClass { get => _startupClass; set => _startupClass =value;}
-
-        public string StartupScene { get => _startupScene; set => _startupScene =value;}
-
-        public GameObject StartupPrefab { get => _startupPrefab; set => _startupPrefab =value;}
 
     }
 }
