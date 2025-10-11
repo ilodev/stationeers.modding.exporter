@@ -66,9 +66,11 @@ namespace stationeers.modding.exporter
 
         private void DrawContentSection(ExportSettings settings)
         {
+            GUI.enabled = false;
             DrawSection(() => {
                 DrawContentSelector(settings);
             });
+            GUI.enabled = true;
         }
         private void DrawDirectorySelector(ExportSettings settings)
         {
