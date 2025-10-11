@@ -16,19 +16,23 @@ namespace stationeers.modding.exporter
 
     public class ExportSettings : ScriptableObject
     {
+        [SerializeField] private string _name;
+
         [SerializeField] private string _author;
 
         [SerializeField] private string _description;
 
-        [SerializeField] private string _name;
+        [SerializeField] private string _version;
+
+        [SerializeField] private string _tags;
+
+        [SerializeField] private string _workshophandle;
 
         [SerializeField] private string _outputDirectory;
 
         [SerializeField] private string _stationeersDirectory;
 
         [SerializeField] private string _stationeersArguments;
-
-        [SerializeField] private string _version;
 
         [SerializeField] private string[] _assemblies = new string[] { };
 
@@ -73,6 +77,25 @@ namespace stationeers.modding.exporter
             get => _version;
             set => _version = value;
         }
+
+        /// <summary>
+        ///     The Mod's Tags.
+        /// </summary>
+        public string Tags
+        {
+            get => _tags;
+            set => _tags = value;
+        }
+
+        /// <summary>
+        ///     The Mod's Steam Workshop Handle.
+        /// </summary>
+        public string WorkshopHandle
+        {
+            get => _workshophandle;
+            set => _workshophandle = value;
+        }
+
 
         /// <summary>
         ///     The directory to which the Mod will be exported.

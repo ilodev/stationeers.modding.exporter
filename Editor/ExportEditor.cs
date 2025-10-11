@@ -49,6 +49,12 @@ namespace stationeers.modding.exporter
                 settings.Author = EditorGUILayout.TextField("Author:", settings.Author);
                 settings.Version = EditorGUILayout.TextField("Version:", settings.Version);
                 settings.Description = EditorGUILayout.TextField("Description:", settings.Description, GUILayout.Height(60));
+                settings.Tags = EditorGUILayout.TextField(
+                    new GUIContent("Tags:", "List of comma separated tags to be added to the mod Steam information."),
+                    settings.Tags);
+                GUI.enabled = false;
+                settings.Tags = EditorGUILayout.TextField("Workshop Handle:", settings.WorkshopHandle);
+                GUI.enabled = true;
             });
 
             var details = new string[] { settings.Name, settings.Author, settings.Version, settings.Description };
