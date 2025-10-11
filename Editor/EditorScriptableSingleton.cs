@@ -30,18 +30,14 @@ namespace stationeers.modding.exporter
 
         private T GetInstance()
         {
-            //Debug.Log("Getting export settings.");
-
             if (_instance == null)
             {
-                //Debug.Log("Instance was null, loading resource " + typeof(T).Name);
                 _instance = Resources.Load<T>(typeof(T).Name);
             }
-            //  Debug.Log("settings found " + _instance.ToString());
 
+            // If _instance is still null it means the resource file doesn't exist.
             if (_instance == null)
             {
-                //Debug.Log("Creating asset resource.");
                 _instance = ScriptableObject.CreateInstance<T>();
                 Debug.Log($"Creating asset resource. {_instance}");
                 AssetUtility.CreateAsset(_instance);

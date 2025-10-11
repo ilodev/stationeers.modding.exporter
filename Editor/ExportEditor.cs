@@ -64,80 +64,17 @@ namespace stationeers.modding.exporter
             settings.IncludePdbs = EditorGUILayout.Toggle("Include Pdb's:", settings.IncludePdbs);
         }
 
-        private void DrawBootSelector(ExportSettings settings)
-        {
-            var content = settings.ContentTypes;
-            var forwardChoices = new Dictionary<BootType, string>();
-            var backwardChoices = new Dictionary<string, BootType>();
-
-            if (content.HasFlag(ContentType.assemblies))
-            {
-                forwardChoices[BootType.entrypoint] = "Code";
-                backwardChoices["Code"] = BootType.entrypoint;
-            }
-            if (content.HasFlag(ContentType.prefabs))
-            {
-                forwardChoices[BootType.prefab] = "Prefab";
-                backwardChoices["Prefab"] = BootType.prefab;
-            }
-            if (content.HasFlag(ContentType.scenes))
-            {
-                forwardChoices[BootType.scene] = "Scene";
-                backwardChoices["Scene"] = BootType.scene;
-            }
-
-            var items = forwardChoices.Values.ToList();
-            items.Sort();
-
-            string currentChoice;
-            if (forwardChoices.ContainsKey(settings.BootType))
-            {
-                currentChoice = forwardChoices[settings.BootType];
-            } else
-            {
-                currentChoice = forwardChoices[0];
-            }
-
-            var currentIndex = items.IndexOf(currentChoice);
-
-            currentIndex = EditorGUILayout.Popup("Startup type:", currentIndex, items.ToArray());
-            currentChoice = items[currentIndex];
-            settings.BootType = backwardChoices[currentChoice];
-        }
-
         private void DrawStartupSelector(ExportSettings settings)
         {
-            switch (settings.BootType)
-            {
-                case BootType.entrypoint:
-                    settings.StartupClass = EditorGUILayout.TextField("Startup class:", settings.StartupClass);
-                    if (settings.StartupClass == "")
-                        throw new ExportValidationError("You must specify a class in your assembly.");
-                    break;
-                case BootType.prefab:
-                    // https://docs.unity3d.com/ScriptReference/EditorGUILayout.ObjectField.html new field
-                    settings.StartupPrefab = (GameObject)EditorGUILayout.ObjectField("Startup Prefab:", settings.StartupPrefab as GameObject, typeof(GameObject), false);
-                    if (settings.StartupPrefab == null)
-                        throw new ExportValidationError("You must specify a prefab from your project.");
-                    break;
-                case BootType.scene:
-                    var scenes = AssetDatabase.FindAssets("t:scene").Select(o => AssetDatabase.GUIDToAssetPath(o)).ToList();
-                    if (scenes.Count == 0)
-                    {
-                        throw new ExportValidationError("There are no scenes in this project.");
-                    }
-                    scenes.Sort();
-                    var currentIndex = Math.Max(0, scenes.IndexOf(settings.StartupScene));
-                    settings.StartupScene = scenes[EditorGUILayout.Popup("Startup scene:", currentIndex, scenes.ToArray())];
-                    break;
-            }
+            settings.StartupClass = EditorGUILayout.TextField("Startup class:", settings.StartupClass);
+            if (settings.StartupClass == "")
+                throw new ExportValidationError("You must specify a class in your assembly.");
         }
 
         private void DrawContentSection(ExportSettings settings)
         {
             DrawSection(() => {
                 DrawContentSelector(settings);
-                DrawBootSelector(settings);
                 DrawStartupSelector(settings);
             });
         }

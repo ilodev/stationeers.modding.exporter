@@ -39,7 +39,8 @@ namespace stationeers.modding.exporter
         [SerializeField] private bool _includePdbs;
         [SerializeField] private bool _waitForDebugger;
 
-        [SerializeField] private BootType _bootType;
+        // We only allow code as entry point from now on
+        [SerializeField] private BootType _bootType = BootType.entrypoint;
 
         [SerializeField] private GameObject _startupPrefab;
 
