@@ -12,8 +12,6 @@ namespace stationeers.modding.exporter
     [Flags]
     public enum ContentType { assemblies = 2, prefabs = 4, scenes = 8 }
 
-    public enum BootType { entrypoint = 0, prefab = 1, scene = 2, bepin = 3 }
-
     public class ExportSettings : ScriptableObject
     {
         [SerializeField] private string _name;
@@ -41,11 +39,9 @@ namespace stationeers.modding.exporter
         [SerializeField] private ContentType _contentTypes;
 
         [SerializeField] private bool _includePdbs;
+
         [SerializeField] private bool _waitForDebugger;
 
-        // We only allow code as entry point from now on
-        [SerializeField] private BootType _bootType = BootType.entrypoint;
-                
         /// <summary>
         ///     The Mod's name.
         /// </summary>
@@ -120,8 +116,6 @@ namespace stationeers.modding.exporter
         public bool IncludePdbs { get => _includePdbs; set => _includePdbs = value; }
 
         public bool WaitForDebugger { get => _waitForDebugger; set => _waitForDebugger = value; }
-
-        public BootType BootType { get => _bootType; set => _bootType =value;}
 
     }
 }
