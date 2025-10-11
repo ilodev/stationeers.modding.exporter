@@ -97,7 +97,7 @@ namespace stationeers.modding.exporter
 
         private void ExportCopyAssets()
         {
-            List<string> list = AssetDatabase.GetAllAssetPaths().Where(o => { LogUtility.LogDebug("Assetpath:" + o); return o.StartsWith("Assets/GameData"); }).ToList();
+            List<string> list = AssetDatabase.GetAllAssetPaths().Where(o => { /*LogUtility.LogDebug("Assetpath:" + o);*/ return o.StartsWith("Assets/GameData"); }).ToList();
             LogUtility.LogDebug("Exporting copy assets...");
             string gamedata = Path.Combine("Assets", "GameData");
             string about = Path.Combine("Assets", "About");
