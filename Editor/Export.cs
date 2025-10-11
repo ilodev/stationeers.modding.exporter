@@ -149,6 +149,7 @@ namespace stationeers.modding.exporter
         {
             assetPaths.ForEach(s => SetAssetBundle(s));
             scenePaths.ForEach(s => SetAssetBundle(s, "scenes"));
+            
             ModPlatform.Windows.GetBuildTargets().ForEach(target => {
                 var platform = target.GetModPlatform().ToString();
                 var subDir = Path.Combine(tempModDirectory, platform);
@@ -156,6 +157,7 @@ namespace stationeers.modding.exporter
                 LogUtility.LogInfo($"Exporting assets for {platform} to: {subDir}");
                 BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, target);
             });
+            
         }
 
         /*

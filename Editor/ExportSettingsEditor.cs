@@ -277,8 +277,8 @@ namespace stationeers.modding.exporter
         {
             DrawDetails();
             DrawContentSection();
-            DrawExportOptions();
             DrawAssemblySelector();
+            DrawExportOptions();
             DrawDevelopmentOptions();
         }
 

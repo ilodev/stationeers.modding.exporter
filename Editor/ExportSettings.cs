@@ -79,11 +79,11 @@ namespace stationeers.modding.exporter
         /// </summary>
         public string[] Assemblies {
             get => _assemblies;
-            set => _assemblies = value;
+            set => _assemblies = value ?? new string[0];
         }
         public string[] Artifacts {
             get => _artifacts;
-            set => _artifacts = value;
+            set => _artifacts = value ?? new string[0];
         }
 
         public string OutputDirectory { get => _outputDirectory; set => _outputDirectory = value; }
