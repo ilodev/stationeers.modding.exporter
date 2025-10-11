@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 using Debug = UnityEngine.Debug;
 
 namespace stationeers.modding.exporter
@@ -149,15 +150,12 @@ namespace stationeers.modding.exporter
         {
             assetPaths.ForEach(s => SetAssetBundle(s));
             scenePaths.ForEach(s => SetAssetBundle(s, "scenes"));
-            
-            ModPlatform.Windows.GetBuildTargets().ForEach(target => {
-                var platform = target.GetModPlatform().ToString();
-                var subDir = Path.Combine(tempModDirectory, platform);
-                Directory.CreateDirectory(subDir);
-                LogUtility.LogInfo($"Exporting assets for {platform} to: {subDir}");
-                BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, target);
-            });
-            
+
+            var platform = BuildTarget.StandaloneWindows.ToString();
+            var subDir = Path.Combine(tempModDirectory, platform);
+            Directory.CreateDirectory(subDir);
+            LogUtility.LogInfo($"Exporting assets for {platform} to: {subDir}");
+            BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
         }
 
         /*
