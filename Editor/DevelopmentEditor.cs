@@ -86,6 +86,7 @@ namespace stationeers.modding.exporter
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
+
             GUILayout.BeginHorizontal();
             int buttonWidth = 300;
             if (!Patcher.DevelopmentModeEnabled.HasValue)
@@ -137,127 +138,8 @@ namespace stationeers.modding.exporter
             }
 
             GUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copy game assemblies to project", GUILayout.Width(buttonWidth), GUILayout.Height(35)))
-            {
-                EditorApplication.delayCall += () =>
-                {
-                    try
-                    {
-                        CopyAssemblies(settings);
-                        EditorUtility.DisplayDialog("Complete", "All files have been copied.", "OK");
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        EditorUtility.DisplayDialog("Error", ex.Message, "OK");
-                    }
-                    AssetDatabase.Refresh();
-                };
-            }
 
-            GUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Auto reference: ", GUILayout.Width(200));
-            var csharpDLL = "Assets/Assemblies/Assembly-CSharp.dll";
-            PluginImporter importer = AssetImporter.GetAtPath(csharpDLL) as PluginImporter;
-            var assemblyPresent = importer != null;
-            var autoReferenced = true; // !IsExplicitlyReferenced(importer);
-            EditorGUILayout.LabelField(assemblyPresent
-                ? csharpDLL + (autoReferenced ? " is auto referenced, resulting in compilation errors!" : " is not auto referenced. Excellent!")
-                : csharpDLL + " not found. Did you copy over assemblies?");
-            if (assemblyPresent && autoReferenced)
-            {
-                if (GUILayout.Button("Fix", GUILayout.Width(buttonWidth), GUILayout.Height(35)))
-                {
-                    EditorApplication.delayCall += () =>
-                    {
-                        try
-                        {
-                            DisableAutoReferenced(csharpDLL);
-                        }
-                        catch (ArgumentException ex)
-                        {
-                            EditorUtility.DisplayDialog("Error", ex.Message, "OK");
-                        }
-                    };
-                }
-            }
-
-            GUILayout.EndHorizontal();
             return true;
-        }
-
-        private void CopyAssemblies(ExportSettings settings)
-        {
-            if (!Directory.Exists(settings.StationeersDirectory))
-            {
-                throw new ArgumentException("Did you configure the Stationeers directory? Could not find " + settings.StationeersDirectory);
-            }
-
-            var assembliesFolder = Path.Combine(Application.dataPath, "Assemblies");
-            var assemblies = Path.Combine(assembliesFolder, "copy.txt");
-            if (!File.Exists(assemblies))
-            {
-                throw new ArgumentException("Could not find " + assemblies);
-            }
-
-            List<string> errors = new List<string>();
-            foreach (var line in File.ReadLines(assemblies))
-            {
-                if (line == "")
-                {
-                    continue;
-                }
-
-                var assemblyToCopy = Path.Combine(settings.StationeersDirectory, line);
-
-                if (File.Exists(assemblyToCopy))
-                {
-                    LogUtility.LogInfo("Copy: " + assemblyToCopy + " to " + assembliesFolder);
-                    File.Copy(assemblyToCopy, Path.Combine(assembliesFolder, Path.GetFileName(assemblyToCopy)), true);
-                }
-                else
-                {
-                    LogUtility.LogError("Error: " + assemblyToCopy + " doesn't exist");
-                    errors.Add(assemblyToCopy);
-                }
-            }
-
-            if (errors.Count > 0)
-            {
-                throw new ArgumentException("Failed to copy the following assemblies:\n" + string.Join("\n", errors));
-            }
-        }
-        /*
-        private bool IsExplicitlyReferenced(PluginImporter importer )
-        {
-                return importer != null && (bool)importer.GetType()
-                    .GetProperty("IsExplicitlyReferenced", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.GetValue(importer)!;
-        }
-        */
-        
-        private void DisableAutoReferenced(string dllPath)
-        {
-            PluginImporter importer = AssetImporter.GetAtPath(dllPath) as PluginImporter;
-            if (importer != null)
-            {
-                SerializedObject serializedImporter = new SerializedObject(importer);
-                SerializedProperty isExplicitlyReferencedProp = serializedImporter.FindProperty("m_IsExplicitlyReferenced");
-                if (isExplicitlyReferencedProp != null && !isExplicitlyReferencedProp.boolValue)
-                {
-                    isExplicitlyReferencedProp.boolValue = true;
-                    serializedImporter.ApplyModifiedProperties();
-                    importer.SaveAndReimport();
-                    Debug.Log($"Auto reference disabled for {dllPath}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"PluginImporter not found for {dllPath}");
-            }
         }
     }
 }

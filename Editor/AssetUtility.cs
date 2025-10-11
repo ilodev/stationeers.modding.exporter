@@ -70,7 +70,7 @@ namespace stationeers.modding.exporter
             {
                 var assetPath = AssetDatabase.GUIDToAssetPath(guid);
 
-                if (assetPath.Contains("StationeersMods") && !assetPath.Contains("ExportSettings"))
+                if (assetPath.Contains("ExportSettings."))
                     continue;
 
                 if (assetPath.Contains("Editor"))
