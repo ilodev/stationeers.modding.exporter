@@ -7,7 +7,7 @@ namespace stationeers.modding.exporter
     public class ExporterEditorWindow : EditorWindow
     {
         private EditorScriptableSingleton<ExportSettings> exportSettings;
-        private ExportSettingsEditor exportSettingsEditor;
+        //private ExportSettingsEditor exportSettingsEditor;
 
         private int selectedTab = 0;
         // private int selectedPath = 0;
@@ -58,7 +58,7 @@ namespace stationeers.modding.exporter
         private void OnEnable()
         {
             exportSettings = new EditorScriptableSingleton<ExportSettings>();
-            exportSettingsEditor = UnityEditor.Editor.CreateEditor(exportSettings.instance) as ExportSettingsEditor;
+            //exportSettingsEditor = UnityEditor.Editor.CreateEditor(exportSettings.instance) as ExportSettingsEditor;
             assemblyEditor = new AssemblyEditor();
             artifactEditor = new ArtifactEditor();
             developmentEditor = new DevelopmentEditor(exportSettings.instance);
@@ -75,7 +75,7 @@ namespace stationeers.modding.exporter
         
         private void OnDisable()
         {
-            DestroyImmediate(exportSettingsEditor);
+           // DestroyImmediate(exportSettingsEditor);
         }
 
         private void DrawExportEditor(ExportSettings settings)

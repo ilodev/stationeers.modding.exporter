@@ -15,6 +15,13 @@ namespace stationeers.modding.exporter
 
         private readonly AssemblyEditor _assemblyEditor = new AssemblyEditor();
 
+        public class ExportValidationError : Exception
+        {
+            public ExportValidationError(string message) : base(message)
+            {
+            }
+        }
+
         private void DrawSection(Action thunk)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.ExpandWidth(true));
