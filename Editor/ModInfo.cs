@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace stationeers.modding.exporter
 {
+    /*
     /// <summary>
     /// Class that stores a Mod's name, author, description, version, path and supported platforms.
     /// </summary>
@@ -210,4 +211,5 @@ namespace stationeers.modding.exporter
             return null;
         }
     }
+    */
 }

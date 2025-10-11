@@ -11,8 +11,6 @@ namespace stationeers.modding.exporter
 {
     public class Export
     {
-        // private readonly List<string> asmDefPaths;
-        // private readonly List<string> copyPaths;
         private readonly List<string> assetPaths;
         private readonly List<string> scenePaths;
         private readonly string modDirectory;
@@ -64,7 +62,7 @@ namespace stationeers.modding.exporter
 
         private void ExportModAssemblies()
         {
-            LogUtility.LogInfo("Exporting mod assemblies...");
+            LogUtility.LogInfo("Exporting mod assemblies (" +  settings.Assemblies.Length + ")...");
             foreach (var asmDefPath in settings.Assemblies)
             {
                 var json = File.ReadAllText(asmDefPath);
@@ -160,6 +158,7 @@ namespace stationeers.modding.exporter
             });
         }
 
+        /*
         private void SaveMetadata()
         {
             var modInfo = new ModInfo(
@@ -174,6 +173,7 @@ namespace stationeers.modding.exporter
 
             ModInfo.Save(Path.Combine(tempModDirectory, settings.Name + ".info"), modInfo);
         }
+        */
 
         private void CopyToOutput()
         {
@@ -200,7 +200,7 @@ namespace stationeers.modding.exporter
             ExportModAssemblies();
             ExportCopyAssets();
             ExportModAssets();
-            SaveMetadata();
+            //SaveMetadata();
             CopyToOutput();
         }
 

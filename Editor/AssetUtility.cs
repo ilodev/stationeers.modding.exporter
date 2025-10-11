@@ -18,7 +18,8 @@ namespace stationeers.modding.exporter
         /// <returns>The directory where ModTool is located.</returns>
         public static string GetModToolDirectory()
         {
-            var location = typeof(ModInfo).Assembly.Location; 
+            //var location = typeof(ModInfo).Assembly.Location; 
+            var location = "";
 
             var modToolDirectory = Path.GetDirectoryName(location);
 
