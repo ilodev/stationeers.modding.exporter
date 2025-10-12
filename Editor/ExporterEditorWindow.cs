@@ -6,7 +6,11 @@ namespace stationeers.modding.exporter
 {
     public class ExporterEditorWindow : EditorWindow
     {
-        private EditorScriptableSingleton<ExportSettings> exportSettings;
+
+        private static EditorScriptableSingleton<ExportSettings> exportSettings;
+
+        // Property that checks whether export settings exist, it also creates the instance tho.
+        private static bool exportSettingsAvailable => exportSettings?.instance != null;
 
         private int selectedTab = 0;
         private List<string> addedAsmdefs = new List<string>();
@@ -15,6 +19,14 @@ namespace stationeers.modding.exporter
         AssemblyEditor assemblyEditor;
         ArtifactEditor artifactEditor;
         DevelopmentEditor developmentEditor;
+
+        public static bool exportSettingsValid(ExportSettings instance)
+        {
+            if (instance == null)
+                return false;   
+            return instance.Name != string.Empty && instance.Author != string.Empty;
+        }
+
 
         public static string GetShortString(string str)
         {
@@ -51,6 +63,15 @@ namespace stationeers.modding.exporter
         {
             ExportMod();
             RunGame();
+        }
+
+        // --- VALIDATION METHODS ---
+        [MenuItem("LaunchPad/Export Mod", true)]
+        [MenuItem("LaunchPad/Export && Run Mod", true)]
+        private static bool ValidateExportMenuItems()
+        {
+            // This controls whether menu items are enabled.
+            return exportSettingsAvailable && exportSettingsValid(exportSettings.instance);
         }
 
         private void OnEnable()

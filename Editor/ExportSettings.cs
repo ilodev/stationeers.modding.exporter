@@ -36,7 +36,7 @@ namespace stationeers.modding.exporter
 
         [SerializeField] private string[] _artifacts = new string[] { };
 
-        [SerializeField] private ContentType _contentTypes;
+        [SerializeField] private ContentType _contentTypes = ContentType.assemblies | ContentType.prefabs | ContentType.scenes;
 
         [SerializeField] private bool _includePdbs;
 
