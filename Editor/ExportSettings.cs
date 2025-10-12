@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace stationeers.modding.exporter
@@ -45,7 +48,8 @@ namespace stationeers.modding.exporter
         /// <summary>
         ///     The Mod's name.
         /// </summary>
-        public string Name {
+        public string Name
+        {
             get => _name;
             set => _name = value;
         }
@@ -53,7 +57,8 @@ namespace stationeers.modding.exporter
         /// <summary>
         ///     The Mod's author.
         /// </summary>
-        public string Author {
+        public string Author
+        {
             get => _author;
             set => _author = value;
         }
@@ -61,7 +66,8 @@ namespace stationeers.modding.exporter
         /// <summary>
         ///     The Mod's description.
         /// </summary>
-        public string Description {
+        public string Description
+        {
             get => _description;
             set => _description = value;
         }
@@ -69,7 +75,8 @@ namespace stationeers.modding.exporter
         /// <summary>
         ///     The Mod's version.
         /// </summary>
-        public string Version {
+        public string Version
+        {
             get => _version;
             set => _version = value;
         }
@@ -96,11 +103,13 @@ namespace stationeers.modding.exporter
         /// <summary>
         ///     The directory to which the Mod will be exported.
         /// </summary>
-        public string[] Assemblies {
+        public string[] Assemblies
+        {
             get => _assemblies;
             set => _assemblies = value ?? new string[0];
         }
-        public string[] Artifacts {
+        public string[] Artifacts
+        {
             get => _artifacts;
             set => _artifacts = value ?? new string[0];
         }
@@ -111,11 +120,51 @@ namespace stationeers.modding.exporter
 
         public string StationeersArguments { get => _stationeersArguments; set => _stationeersArguments = value; }
 
-        public ContentType ContentTypes { get => _contentTypes; set => _contentTypes =value;}
+        public ContentType ContentTypes { get => _contentTypes; set => _contentTypes = value; }
 
         public bool IncludePdbs { get => _includePdbs; set => _includePdbs = value; }
 
         public bool WaitForDebugger { get => _waitForDebugger; set => _waitForDebugger = value; }
+
+
+        public void AddAssembly(string assemblyName)
+        {
+            _assemblies.Append(assemblyName);
+        }
+
+        private void OnEnable()
+        {
+            // Set default name if empty
+            if (string.IsNullOrEmpty(_name))
+            {
+                // Get the folder name of the Unity project
+                string projectFolderName = Path.GetFileName(Path.GetDirectoryName(Application.dataPath));
+                _name = projectFolderName;
+            }
+
+            // Set default author if empty
+            if (string.IsNullOrEmpty(_author))
+            {
+                // Try to use Unity's company name or username
+                string companyName = Application.companyName;
+
+                // EditorPrefs stores the user name under this key in the Editor
+                string editorUserName = EditorPrefs.GetString("unity.username", "");
+                if (!string.IsNullOrEmpty(editorUserName))
+                    _author = editorUserName;
+                else
+                    _author = companyName;
+            }
+
+            // Set default author if empty
+            if (string.IsNullOrEmpty(_version))
+            {
+                _version = "1.0.0";
+            }
+
+            // Description, needs to be filled up by the user.
+
+        }
 
     }
 }

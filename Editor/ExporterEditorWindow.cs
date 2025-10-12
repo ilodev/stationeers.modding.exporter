@@ -104,6 +104,9 @@ namespace stationeers.modding.exporter
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(50);
 
+                if (settings.OutputDirectory == null)
+                    GUI.enabled = false;
+
                 if (GUILayout.Button("Export", GUILayout.Height(25)))
                 {
                     EditorApplication.delayCall += () => Export.ExportMod(settings);
@@ -119,6 +122,7 @@ namespace stationeers.modding.exporter
                         Export.RunGame(settings);
                     };
                 }
+                GUI.enabled = true;
 
                 GUILayout.Space(50);
                 GUILayout.EndHorizontal();

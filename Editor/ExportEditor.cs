@@ -134,6 +134,16 @@ namespace stationeers.modding.exporter
                 if (candidates.Count == 0)
                 {
                     EditorGUILayout.HelpBox("No Assembly Definition Assets found in this project.", MessageType.Info);
+                    if (GUILayout.Button("Create Default")) { 
+                        _assemblyEditor.CreateDefault(settings);
+                        //settings.AddAssembly("Assets/" + settings.name + ".asmdef");
+                        //Debug.Log("Assembly list " + settings.Assemblies.Length);
+
+
+                        // Refresh AssetDatabase so it appears in the Project window
+                        AssetDatabase.Refresh();
+                    }
+
                     if (GUILayout.Button("Refresh"))
                         _assemblyEditor.ClearCandidates();
                     return;
@@ -173,6 +183,7 @@ namespace stationeers.modding.exporter
                     // add the first unused candidate (or first if all used)
                     var firstUnused = candidates.FirstOrDefault(c => !selections.Contains(c));
                     selections.Add(firstUnused ?? candidates[0]);
+                    Debug.Log(candidates[0]);
                 }
                 if (GUILayout.Button("Refresh", GUILayout.Width(90)))
                 {
