@@ -111,6 +111,7 @@ namespace stationeers.modding.exporter
                 CopyDirectory(about, Path.Combine(tempModDirectory, "About"), true);
             }
         }
+
         static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
         {
             // Get information about the source directory
@@ -146,6 +147,7 @@ namespace stationeers.modding.exporter
                 }
             }
         }
+
         private void ExportModAssets()
         {
             assetPaths.ForEach(s => SetAssetBundle(s));
@@ -158,22 +160,18 @@ namespace stationeers.modding.exporter
             BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
         }
 
-        /*
-        private void SaveMetadata()
+        private void ExportAboutMetadata()
         {
-            var modInfo = new ModInfo(
+            var modAbout = new ModAbout(
                 settings.Name,
                 settings.Author,
                 settings.Description,
-                settings.Version,
-                Application.unityVersion,
-                ModPlatform.Windows,
-                ModContent.Assets & ModContent.Scenes,
-                settings.ContentTypes);
+                settings.Version
+            );
 
-            ModInfo.Save(Path.Combine(tempModDirectory, settings.Name + ".info"), modInfo);
+            //ModAbout.Save("Assets/About/About.xml", modAbout);
+            ModAbout.Save(Path.Combine(tempModDirectory, "About/About.xml"), modAbout);
         }
-        */
 
         private void CopyToOutput()
         {
@@ -200,7 +198,7 @@ namespace stationeers.modding.exporter
             ExportModAssemblies();
             ExportCopyAssets();
             ExportModAssets();
-            //SaveMetadata();
+            //ExportAboutMetadata();
             CopyToOutput();
         }
 
