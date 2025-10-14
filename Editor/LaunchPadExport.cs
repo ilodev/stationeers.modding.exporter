@@ -171,7 +171,6 @@ namespace stationeers.modding.exporter
             Directory.CreateDirectory(subDir);
             Debug.Log($"Exporting assets for {platform} to: {subDir}");
             BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
-            
         }
 
         public static void Export(BuildPlayerOptions options)

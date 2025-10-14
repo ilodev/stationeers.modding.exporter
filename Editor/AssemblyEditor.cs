@@ -10,7 +10,7 @@ namespace stationeers.modding.exporter
         /// <summary>
         /// Cached list of candidate Assembly Definitions found
         /// </summary>
-        List <string> _candidatesCache = null;
+        //List <string> _candidatesCache = null;
 
         /*
         public void CreateDefault(ExportSettings settings)

@@ -77,6 +77,7 @@ namespace stationeers.modding.exporter
                     continue;
 
                 //NOTE: AssetDatabase.FindAssets() can contain duplicates for some reason
+                //doubt, but I'm not in the mood to confirm this
                 if (assetPaths.Contains(assetPath))
                     continue;
 
@@ -109,7 +110,7 @@ namespace stationeers.modding.exporter
         }
 
         /// <summary>
-        /// Create an asset for a ScriptableObject in a ModTool Resources directory.
+        /// Create an asset for a ScriptableObject in a Resources directory.
         /// </summary>
         /// <param name="scriptableObject">A ScriptableObject instance.</param>
         public static void CreateAsset(ScriptableObject scriptableObject)
