@@ -25,10 +25,46 @@ namespace stationeers.modding.exporter
         private const string AppId = "544550"; // Stationeers (Steam) — steamdb confirms
         private const string ExeName = "rocketstation.exe";
         private const string PrefExeOverride = "StationeersRunner.ExeOverride";
+        private static bool _enabled;
+        private const string PrefEnabledKey = "StationeersRunner_Enabled";
+
+        // quick testing, Remove later
+        [MenuItem("Tools/Stationeers/Enable AutoRun", priority = 0)]
+        private static void EnableWatcher()
+        {
+            _enabled = true;
+            EditorPrefs.SetBool(PrefEnabledKey, true);
+            UnityEngine.Debug.Log("[About Watcher] Enabled");
+        }
+
+        [MenuItem("Tools/Stationeers/Enable AutoRun", true)]
+        private static bool EnableValidate()
+        {
+            Menu.SetChecked("Tools/Stationeers/Enable AutoRun", _enabled);
+            return true;
+        }
+
+        [MenuItem("Tools/Stationeers/Disable AutoRun", priority = 1)]
+        private static void DisableWatcher()
+        {
+            _enabled = false;
+            EditorPrefs.SetBool(PrefEnabledKey, false);
+            UnityEngine.Debug.Log("[About Watcher] Disabled");
+        }
+
+        [MenuItem("Tools/Stationeers/Disable AutoRun", true)]
+        private static bool DisableValidate()
+        {
+            Menu.SetChecked("Tools/Stationeers/Disable AutoRun", !_enabled);
+            return true;
+        }
 
         [MenuItem("Tools/Stationeers/Run")]
         public static void RunStationeers()
         {
+            if (!_enabled)
+                return;
+
             // 1) Try Steam URI
             if (TryOpenSteamUri())
                 return;
@@ -63,6 +99,8 @@ namespace stationeers.modding.exporter
             EditorPrefs.DeleteKey(PrefExeOverride);
             UnityEngine.Debug.Log("[StationeersRunner] Cleared manual path override.");
         }
+
+
 
         // --- Steam URI ---
 
