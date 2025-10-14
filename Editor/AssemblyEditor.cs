@@ -5,18 +5,14 @@ using UnityEditor;
 
 namespace stationeers.modding.exporter
 {
-    internal class AssemblyEditor : SelectionEditor
+    internal class AssemblyEditor 
     {
         /// <summary>
         /// Cached list of candidate Assembly Definitions found
         /// </summary>
         List <string> _candidatesCache = null;
-        
-        public override void DrawHelpBox()
-        {
-            //EditorGUILayout.HelpBox("Add asmdefs from your project to be exported into your mod.", MessageType.Info, true);
-        }
 
+        /*
         public void CreateDefault(ExportSettings settings)
         {
             if (settings.Name == null)
@@ -51,5 +47,7 @@ namespace stationeers.modding.exporter
         {
             _candidatesCache = null;
         }
+        */
+
     }
 }

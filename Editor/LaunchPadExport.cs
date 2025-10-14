@@ -131,7 +131,7 @@ namespace stationeers.modding.exporter
 
         private static void ExportAssets(BuildPlayerOptions options)
         {
-            LogUtility.LogInfo("Exporting copy assets...");
+            Debug.Log("Exporting copy assets...");
             string gamedata = Path.Combine("Assets", "GameData");
             string about = Path.Combine("Assets", "About");
             var dir = new DirectoryInfo(gamedata);
@@ -169,7 +169,7 @@ namespace stationeers.modding.exporter
             var platform = BuildTarget.StandaloneWindows.ToString();
             var subDir = Path.Combine(tempFolder, platform);
             Directory.CreateDirectory(subDir);
-            LogUtility.LogInfo($"Exporting assets for {platform} to: {subDir}");
+            Debug.Log($"Exporting assets for {platform} to: {subDir}");
             BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
             
         }
