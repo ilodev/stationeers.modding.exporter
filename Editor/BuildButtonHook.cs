@@ -29,8 +29,11 @@ namespace stationeers.modding.exporter
             bool hadErrors = CompileMonitor.LastPassHadErrors;
 
             if (hadErrors)
+            {
                 Debug.LogError($"Last build had errors, exporting stopped");
-            else 
+                return;
+            }
+            else
                 LaunchPadExport.Export(options);
 
             bool isBuildAndRun = (options.options & BuildOptions.AutoRunPlayer) != 0;
