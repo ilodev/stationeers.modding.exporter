@@ -17,8 +17,6 @@ namespace stationeers.modding.exporter
         public string[] precompiledReferences;
         public string[] references;
 
-
-
         public static void CreateAsmdef(string folderPath, string assemblyName, List<string> references, List<string> precompiled)
         {
             // Ensure folder exists

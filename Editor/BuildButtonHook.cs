@@ -50,12 +50,9 @@ namespace stationeers.modding.exporter
         {
             public static void Run(bool isBuildAndRun, BuildPlayerOptions incoming)
             {
-                // Put your custom logic here: versioning, preflight checks, CI triggers, etc.
-                //Debug.Log(isBuildAndRun ? "Intercepted Build And Run" : "Intercepted Build");
-
-
-                // Example: do something, then decide whether to hand back to Unity:
-                // BuildPipeline.BuildPlayer(incoming); // optional
+                if (isBuildAndRun)
+                    // After your build completes:
+                    StationeersRunner.RunStationeers();
             }
         }
     }

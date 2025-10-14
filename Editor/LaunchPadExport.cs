@@ -162,8 +162,10 @@ namespace stationeers.modding.exporter
             assetPaths.ForEach(s => SetAssetBundle(s));
             Debug.Log($"- Total Asset count {assetPaths.Count}");
 
-            //scenePaths.ForEach(s => SetAssetBundle(s, "scenes"));
-            // Debug.Log($"- Total Scene count {scenePaths.Count}");
+            // Adding all scenes for now, maybe later we can use the scene build editor settings
+            List<string> scenePaths = AssetUtility.GetAssets("t:scene");
+            scenePaths.ForEach(s => SetAssetBundle(s, "scenes"));
+            Debug.Log($"- Total Scene count {scenePaths.Count}");
 
             // Forcing building platform as standalone windows for now.
             var platform = BuildTarget.StandaloneWindows.ToString();
