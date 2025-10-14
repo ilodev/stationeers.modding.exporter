@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -27,6 +28,9 @@ namespace stationeers.modding.exporter
             // Run whatever you want before/after or *instead of* Unity's default build.
             // Example: call your own static method
             MyBuildRunner.Run(isBuildAndRun, options);
+
+            if (!ExportPreflight.SaveAllWithPrompts())
+                return; // user canceled or something failed to save
 
             // Start/await a compile pass and get the result
             bool hadErrors = CompileMonitor.LastPassHadErrors;
