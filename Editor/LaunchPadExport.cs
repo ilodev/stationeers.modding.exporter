@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,6 +11,20 @@ namespace stationeers.modding.exporter
     {
         public static string exportFolder;
         public static string tempFolder;
+
+        static string Sanitize(string part)
+        {
+            // Replace invalid chars with underscores
+            string clean = Regex.Replace(part, @"[^A-Za-z0-9_]", "_");
+            // Remove leading digits and underscores
+            clean = Regex.Replace(clean, @"^[^A-Za-z_]+", "");
+            // PascalCase words separated by underscores
+            clean = string.Join("", clean
+                .Split(new[] { '_', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => char.ToUpper(w[0]) + w.Substring(1).ToLower()));
+            // Fallback if it became empty
+            return string.IsNullOrEmpty(clean) ? "Unnamed" : clean;
+        }
 
         static string GetExportFolder(BuildPlayerOptions opts)
         {
@@ -29,14 +44,14 @@ namespace stationeers.modding.exporter
 
         private static void DeleteTempFolder(string folder)
         {
-            Debug.Log($"Deleting temp build directory: {folder}");
+            Debug.Log($"Deleting build directory: {folder}");
             if (Directory.Exists(folder))
                 Directory.Delete(folder, true);
         }
 
         private static void CreateTempFolder(string folder)
         {
-            Debug.Log($"Creating temp build directory: {folder}");
+            Debug.Log($"Creating build directory: {folder}");
             if (!Directory.Exists(folder))
                 Directory.CreateDirectory(folder);
         }
@@ -135,7 +150,7 @@ namespace stationeers.modding.exporter
         {
             //Debug.Log($"PATH: {assetPath}");
             var importer = AssetImporter.GetAtPath(assetPath);
-            importer.assetBundleName = PlayerSettings.productName;
+            importer.assetBundleName = Sanitize(PlayerSettings.productName);
             importer.assetBundleVariant = variant;
         }
 
@@ -147,10 +162,10 @@ namespace stationeers.modding.exporter
             assetPaths.ForEach(s => SetAssetBundle(s));
             Debug.Log($"- Total Asset count {assetPaths.Count}");
 
-
             //scenePaths.ForEach(s => SetAssetBundle(s, "scenes"));
             // Debug.Log($"- Total Scene count {scenePaths.Count}");
 
+            // Forcing building platform as standalone windows for now.
             var platform = BuildTarget.StandaloneWindows.ToString();
             var subDir = Path.Combine(tempFolder, platform);
             Directory.CreateDirectory(subDir);
@@ -162,7 +177,8 @@ namespace stationeers.modding.exporter
         public static void Export(BuildPlayerOptions options)
         {
             exportFolder = GetExportFolder(options);
-            tempFolder = Path.Combine(exportFolder, "Temp", PlayerSettings.productName);
+            //tempFolder = Path.Combine(exportFolder, "Temp", PlayerSettings.productName);
+            tempFolder = Path.Combine(exportFolder, Sanitize(PlayerSettings.productName));
 
             if ((options.options & BuildOptions.CleanBuildCache) != 0)
                 DeleteTempFolder(tempFolder);
