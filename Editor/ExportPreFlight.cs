@@ -101,7 +101,7 @@ namespace stationeers.modding.exporter
         // Back-compat name
         public static bool PromptUserToSaveAll() => SaveAllWithPrompts();
 
-        // Menu helpers for quick testing
+        // Menu helpers for quick testing, remove later
         [MenuItem("Tools/Export/Preflight/Save Everything (with prompts)")]
         private static void MenuSaveWithPrompts()
         {

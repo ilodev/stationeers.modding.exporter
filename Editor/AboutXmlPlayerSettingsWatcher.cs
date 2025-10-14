@@ -34,6 +34,7 @@ namespace stationeers.modding.exporter
             EditorApplication.update += Tick;
         }
 
+        // quick testing, Remove later
         [MenuItem("Tools/About/Watcher/Enable", priority = 0)]
         private static void EnableWatcher()
         {
