@@ -5,11 +5,17 @@ All notable changes to this package will be documented in this file. The format 
 
 ## [1.0.1] - 2025-10-08
 
-### Updated
+### Improved exporter
 
-Author in package.json
-Git usage description.
-Improved RocketWerkz notice.
+Removed stationeersMods dependency.
+Prompt user to save before building/exporting.
+Moved towards an process agnostic incremental exporter.
+Exporting integrated with the build system through Build Settings: Control+b, control+shift+b
+Added option to find/run the game after exporting.
+Added option to rebuild the export completely, overwrite new items or update only the dlls.
+Integrated Unity Developer Mode from Build Settings.
+Integrated Unity Copy PDB files from Build Settings.
+Using Player Settings for project/author/version.
 Bumped version.
 
 ## [1.0.0] - 2025-10-08
