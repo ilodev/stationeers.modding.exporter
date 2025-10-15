@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -13,6 +14,13 @@ namespace stationeers.modding.exporter
     /// </summary>
     public class AssetUtility
     {
+        [MenuItem("Tools/Setup/Default Mod Setup", priority = 50)]
+        public static void CreateDefaultSetup()
+        {
+            CreateDefaultAbout();
+            CreateDefaultScript();
+            AsmDef.CreateDefaultAssembly();
+        }
 
 
         [MenuItem("Tools/Setup/Default Script")]
@@ -39,10 +47,10 @@ namespace stationeers.modding.exporter
                 AssetDatabase.GUIDToAssetPath(guid);
             }
 
-            // Build final source text from your template
-            string src = GetTemplate()
-                .Replace("{productName}", productName)                 // namespace and class
-                .Replace("{productVersion}", productVersion);    // quoted for new(...)
+            // Build final source text from template
+            string src = GetScriptTemplate()
+                .Replace("{productName}", productName)
+                .Replace("{productVersion}", productVersion);
 
             // Write file
             File.WriteAllText(savePath, src);
@@ -50,27 +58,105 @@ namespace stationeers.modding.exporter
 
         }
 
-        private static string GetTemplate()
+        private static string GetScriptTemplate()
         {
             return
-    "using UnityEngine;\n" +
-    "using LaunchPadBooster;\n" +
-    "using System.Collections.Generic;\n" +
-    "\n" +
-    "namespace {productName}\n" +
-    "{\n" +
-    "    public class {productName} : MonoBehaviour\n" +
-    "    {\n" +
-    "        public static readonly Mod MOD = new(\"{productName}\", \"{productVersion}\");\n" +
-    "\n" +
-    "        public void OnLoaded(List<GameObject> prefabs)\n" +
-    "        {\n" +
-    "            MOD.AddPrefabs(prefabs);\n" +
-    "\n" +
-    "\n" +       // Additional initialization goes here
-    "        }\n" +
-    "    }\n" +
-    "}\n";
+                "using UnityEngine;\n" +
+                "using LaunchPadBooster;\n" +
+                "using System.Collections.Generic;\n" +
+                "\n" +
+                "namespace {productName}\n" +
+                "{\n" +
+                "    public class {productName} : MonoBehaviour\n" +
+                "    {\n" +
+                "        public static readonly Mod MOD = new(\"{productName}\", \"{productVersion}\");\n" +
+                "\n" +
+                "        public void OnLoaded(List<GameObject> prefabs)\n" +
+                "        {\n" +
+                "            MOD.AddPrefabs(prefabs);\n" +
+                "\n" +
+                "\n" +       // Additional initialization goes here
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        }
+
+
+        [MenuItem("Tools/Setup/Default About")]
+        public static void CreateDefaultAbout()
+        {
+            string companyName = LaunchPadExport.Sanitize(PlayerSettings.companyName ?? "Default Company");
+            string productName = LaunchPadExport.Sanitize(PlayerSettings.productName ?? "ProductName");
+            string productVersion = PlayerSettings.bundleVersion ?? "1.0.0";
+            string DefaultFilename = "About.xml";
+
+            string assetFolder = "About";
+            string savePath = Path.Combine("Assets", assetFolder, DefaultFilename);
+
+            // Ensure folder exists
+            if (!AssetDatabase.IsValidFolder(Path.Combine("Assets", assetFolder)))
+            {
+                string guid = AssetDatabase.CreateFolder("Assets", assetFolder);
+                AssetDatabase.GUIDToAssetPath(guid);
+            }
+
+            // Avoid overwriting existing files
+            if (!File.Exists(savePath))
+            {
+                // Build final source text from template
+                string src = GetXmlTemplate()
+                    .Replace("{productName}", productName)
+                    .Replace("{author}", companyName)
+                    .Replace("{productVersion}", productVersion);
+
+                // Write file
+                File.WriteAllText(savePath, src);
+                AssetDatabase.ImportAsset(savePath);
+            }
+
+            savePath = Path.Combine("Assets", assetFolder, "Preview.png");
+            // Avoid overwriting existing files
+            if (!File.Exists(savePath))
+            {
+                string thisFileAbs = GetThisFilePath();
+                string thisDirAbs = Path.GetDirectoryName(thisFileAbs);
+                string sourceAbs = Path.Combine(thisDirAbs, "templates", "Preview.png");
+                File.Copy(sourceAbs, savePath, overwrite: true);
+                AssetDatabase.ImportAsset(savePath);
+            }
+
+
+            savePath = Path.Combine("Assets", assetFolder, "Thumb.png");
+            // Avoid overwriting existing files
+            if (!File.Exists(savePath))
+            {
+                string thisFileAbs = GetThisFilePath();
+                string thisDirAbs = Path.GetDirectoryName(thisFileAbs);
+                string sourceAbs = Path.Combine(thisDirAbs, "templates", "Thumb.png");
+                File.Copy(sourceAbs, savePath, overwrite: true);
+                AssetDatabase.ImportAsset(savePath);
+            }
+
+
+        }
+
+        // Returns the absolute path of THIS .cs file at compile time (Editor only)
+        private static string GetThisFilePath([CallerFilePath] string path = "") => path;
+
+        private static string GetXmlTemplate()
+        {
+            return
+                "<?xml version=\"1.0\"?>\n" +
+                "<ModMetadata xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" +
+                "  <Name>{productName}</Name>\n" +
+                "  <Author>{author}</Author>\n" +
+                "  <Version>{productVersion}</Version>\n" +
+                "  <Description>Stationeers mod</Description>\n" +
+                "  <WorkshopHandle>0</WorkshopHandle>\n" +
+                "  <Tags>\n" +
+                "    <Tag>LaunchPad</Tag>\n" +
+                "  </Tags>\n" +
+                "</ModMetadata>\n";
         }
 
         /// <summary>
