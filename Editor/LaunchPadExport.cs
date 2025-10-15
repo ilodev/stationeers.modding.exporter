@@ -202,7 +202,7 @@ namespace stationeers.modding.exporter
             if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
                 bundles = ExportAssetBundles(options);
         
-            Debug.Log($"Export complete: {assemblies} Assemblies, {bundles} AssetBundles.");
+            Debug.Log($"Export complete: {assemblies} Assemblies, {bundles} Assets.");
         }
     }
 }
