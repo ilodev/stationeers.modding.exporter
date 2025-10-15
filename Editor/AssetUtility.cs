@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,6 +13,66 @@ namespace stationeers.modding.exporter
     /// </summary>
     public class AssetUtility
     {
+
+
+        [MenuItem("Tools/Setup/Default Script")]
+        public static void CreateDefaultScript()
+        {
+            string productName = LaunchPadExport.Sanitize(PlayerSettings.productName);
+            string productVersion = PlayerSettings.bundleVersion ?? "1.0.0";
+            string DefaultFilename = productName + ".cs";
+
+            string assetFolder = "Scripts";
+            string savePath = Path.Combine("Assets", assetFolder, DefaultFilename);
+
+            // Avoid overwriting existing files
+            if (File.Exists(savePath))
+            {
+                Debug.Log($"{savePath} exists, aborting.");
+                return;
+            }
+
+            // Ensure folder exists
+            if (!AssetDatabase.IsValidFolder(Path.Combine("Assets", assetFolder)))
+            {
+                string guid = AssetDatabase.CreateFolder("Assets", assetFolder);
+                AssetDatabase.GUIDToAssetPath(guid);
+            }
+
+            // Build final source text from your template
+            string src = GetTemplate()
+                .Replace("{productName}", productName)                 // namespace and class
+                .Replace("{productVersion}", productVersion);    // quoted for new(...)
+
+            // Write file
+            File.WriteAllText(savePath, src);
+            AssetDatabase.ImportAsset(savePath);
+
+        }
+
+        private static string GetTemplate()
+        {
+            return
+    "using UnityEngine;\n" +
+    "using LaunchPadBooster;\n" +
+    "using System.Collections.Generic;\n" +
+    "\n" +
+    "namespace {productName}\n" +
+    "{\n" +
+    "    public class {productName} : MonoBehaviour\n" +
+    "    {\n" +
+    "        public static readonly Mod MOD = new(\"{productName}\", \"{productVersion}\");\n" +
+    "\n" +
+    "        public void OnLoaded(List<GameObject> prefabs)\n" +
+    "        {\n" +
+    "            MOD.AddPrefabs(prefabs);\n" +
+    "\n" +
+    "\n" +       // Additional initialization goes here
+    "        }\n" +
+    "    }\n" +
+    "}\n";
+        }
+
         /// <summary>
         ///     Finds and returns the directory where ModTool is located.
         /// </summary>
