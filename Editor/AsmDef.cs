@@ -35,7 +35,7 @@ namespace stationeers.modding.exporter
                 productName,
                 new List<string> { "Unity.TextMeshPro"},
                 new List<string> { "Assembly-CSharp.dll", "Assembly-CSharp-firstpass.dll", "BepInEx.dll", "0Harmony.dll", "RW.RocketNet.dll", "LaunchPadBooster.dll" }, 
-                new List<string> { "STATIONEERS_DLL_PRESENT" }
+                new List<string> { }
             );
         }
 
@@ -50,27 +50,20 @@ namespace stationeers.modding.exporter
                 return;
             }
 
-            VersionDefine verCheck = new VersionDefine {
-                name = "stationeers.modding.assemblies",
-                expression = "1.0.0",
-                define = "STATIONEERS_DLL_PRESENT"
-            };
-
-
             // Define the assembly definition structure
             var asmDef = new AssemblyDefinitionData
             {
                 name = assemblyName,
                 rootNamespace = nameSpace,
                 references = references?.ToArray() ?? new string[0],
-                includePlatforms = new string[1] { "Editor" },
+                includePlatforms = new string[2] { "Editor", "WindowsStandalone64" },
                 excludePlatforms = new string[0],
                 allowUnsafeCode = false,
                 autoReferenced = true,
                 overrideReferences = true,
                 precompiledReferences = precompiled?.ToArray() ?? new string[0],
                 defineConstraints = constraints?.ToArray() ?? new string[0],
-                versionDefines = new VersionDefine[1] { verCheck },
+                versionDefines = new VersionDefine[0],
                 noEngineReferences = false
             };
 
