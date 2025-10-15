@@ -1,10 +1,4 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using UnityEditor;
-using UnityEditor.Build;
-using UnityEditor.Build.Reporting;
-using UnityEditor.Compilation;
 using UnityEngine;
 
 namespace stationeers.modding.exporter

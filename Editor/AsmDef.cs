@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.Compilation;
 using UnityEngine;
 
 namespace stationeers.modding.exporter
@@ -17,8 +19,30 @@ namespace stationeers.modding.exporter
         public string[] precompiledReferences;
         public string[] references;
 
-        public static void CreateAsmdef(string folderPath, string assemblyName, List<string> references, List<string> precompiled)
+        [MenuItem("Tools/Setup/Default Assembly")]
+        public static void CreateDefaultAssembly()
         {
+            string productName = LaunchPadExport.Sanitize(PlayerSettings.productName);
+
+            // don't overwrite existing files.
+            string path = Path.Combine(Application.dataPath, $"{productName}.asmdef");
+            if (File.Exists(path))
+                return;
+
+            CreateAsmdef(
+                "Assets", // Default relative to Assets
+                productName,
+                productName,
+                new List<string> { "Unity.TextMeshPro"},
+                new List<string> { "Assembly-CSharp.dll", "Assembly-CSharp-firstpass.dll", "BepInEx.dll", "0Harmony.dll", "RW.RocketNet.dll", "LaunchPadBooster.dll" }, 
+                new List<string> { "STATIONEERS_DLL_PRESENT" }
+            );
+        }
+
+
+        public static void CreateAsmdef(string folderPath, string assemblyName, string nameSpace, List<string> references, List<string> precompiled, List<string> constraints)
+        {
+
             // Ensure folder exists
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
@@ -26,19 +50,27 @@ namespace stationeers.modding.exporter
                 return;
             }
 
+            VersionDefine verCheck = new VersionDefine {
+                name = "stationeers.modding.assemblies",
+                expression = "1.0.0",
+                define = "STATIONEERS_DLL_PRESENT"
+            };
+
+
             // Define the assembly definition structure
             var asmDef = new AssemblyDefinitionData
             {
                 name = assemblyName,
+                rootNamespace = nameSpace,
                 references = references?.ToArray() ?? new string[0],
-                includePlatforms = new string[0],
+                includePlatforms = new string[1] { "Editor" },
                 excludePlatforms = new string[0],
                 allowUnsafeCode = false,
                 autoReferenced = true,
                 overrideReferences = true,
                 precompiledReferences = precompiled?.ToArray() ?? new string[0],
-                defineConstraints = new string[0],
-                versionDefines = new VersionDefine[0],
+                defineConstraints = constraints?.ToArray() ?? new string[0],
+                versionDefines = new VersionDefine[1] { verCheck },
                 noEngineReferences = false
             };
 
@@ -49,6 +81,20 @@ namespace stationeers.modding.exporter
             string filePath = Path.Combine(folderPath, $"{assemblyName}.asmdef");
             File.WriteAllText(filePath, json);
 
+
+            // Import that specific asset; fall back to full refresh if needed
+            AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceUpdate);
+            if (!AssetDatabase.GUIDFromAssetPath(filePath).Empty())
+            {
+                // good
+            }
+            else
+            {
+                AssetDatabase.Refresh(); // last resort
+            }
+
+            // Trigger script compilation so the new asmdef is picked up immediately
+            CompilationPipeline.RequestScriptCompilation();
         }
 
         // Internal representation of Unity's asmdef JSON structure
@@ -56,6 +102,7 @@ namespace stationeers.modding.exporter
         private class AssemblyDefinitionData
         {
             public string name;
+            public string rootNamespace;
             public string[] references;
             public string[] includePlatforms;
             public string[] excludePlatforms;

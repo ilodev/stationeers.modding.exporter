@@ -4,15 +4,16 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace stationeers.modding.exporter
 {
-    public class LaunchPadExport
+    public static class LaunchPadExport
     {
         public static string exportFolder;
         public static string tempFolder;
 
-        static string Sanitize(string part)
+        public static string Sanitize(string part)
         {
             // Replace invalid chars with underscores
             string clean = Regex.Replace(part, @"[^A-Za-z0-9_]", "_");
@@ -42,21 +43,21 @@ namespace stationeers.modding.exporter
             return opts.locationPathName;
         }
 
-        private static void DeleteTempFolder(string folder)
+        private static void DeleteOutputFolder(string folder)
         {
             Debug.Log($"Deleting build directory: {folder}");
             if (Directory.Exists(folder))
                 Directory.Delete(folder, true);
         }
 
-        private static void CreateTempFolder(string folder)
+        private static void CreateOutputFolder(string folder)
         {
             Debug.Log($"Creating build directory: {folder}");
             if (!Directory.Exists(folder))
                 Directory.CreateDirectory(folder);
         }
 
-        private static void ExportAssemblies(BuildPlayerOptions options)
+        private static int ExportAssemblies(BuildPlayerOptions options)
         {
             // Candidates list already excludes package and editor asmdef files.
             List<string> _candidatesCache = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").ToList();
@@ -88,8 +89,9 @@ namespace stationeers.modding.exporter
                     if (File.Exists(modPdbPath))
                         File.Copy(modPdbPath, Path.Combine(tempFolder, $"{asmDef.name}.pdb"), overwrite);
                 }
-
             }
+
+            return _candidatesCache.Count;
         }
 
 
@@ -154,7 +156,7 @@ namespace stationeers.modding.exporter
             importer.assetBundleVariant = variant;
         }
 
-        private static void ExportAssetBundles(BuildPlayerOptions options)
+        private static int ExportAssetBundles(BuildPlayerOptions options)
         {
             Debug.Log("Export AssetBundles");
             
@@ -173,29 +175,34 @@ namespace stationeers.modding.exporter
             Directory.CreateDirectory(subDir);
             Debug.Log($"Exporting assets for {platform} to: {subDir}");
             BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
+
+            return assetPaths.Count;
         }
 
         public static void Export(BuildPlayerOptions options)
         {
+            Debug.Log("Export started");
+            int assemblies = 0;
+            int bundles = 0;
+
             exportFolder = GetExportFolder(options);
-            //tempFolder = Path.Combine(exportFolder, "Temp", PlayerSettings.productName);
             tempFolder = Path.Combine(exportFolder, Sanitize(PlayerSettings.productName));
 
             if ((options.options & BuildOptions.CleanBuildCache) != 0)
-                DeleteTempFolder(tempFolder);
+                DeleteOutputFolder(tempFolder);
 
-            CreateTempFolder(tempFolder);
+            CreateOutputFolder(tempFolder);
 
-            ExportAssemblies(options);
+            assemblies = ExportAssemblies(options);
 
             if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
                 ExportAssets(options);
 
+            // TODO: Consider cleaning up the bundles first.
             if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
-                ExportAssetBundles(options);
-
-
-            Debug.Log("Export complete");
+                bundles = ExportAssetBundles(options);
+        
+            Debug.Log($"Export complete: {assemblies} Assemblies, {bundles} AssetBundles.");
         }
     }
 }

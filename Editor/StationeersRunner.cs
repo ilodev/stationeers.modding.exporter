@@ -34,7 +34,7 @@ namespace stationeers.modding.exporter
         {
             _enabled = true;
             EditorPrefs.SetBool(PrefEnabledKey, true);
-            UnityEngine.Debug.Log("[About Watcher] Enabled");
+            UnityEngine.Debug.Log("[AutoRun] Enabled");
         }
 
         [MenuItem("Tools/Stationeers/Enable AutoRun", true)]
@@ -49,7 +49,7 @@ namespace stationeers.modding.exporter
         {
             _enabled = false;
             EditorPrefs.SetBool(PrefEnabledKey, false);
-            UnityEngine.Debug.Log("[About Watcher] Disabled");
+            UnityEngine.Debug.Log("[AutoRun] Disabled");
         }
 
         [MenuItem("Tools/Stationeers/Disable AutoRun", true)]
