@@ -74,6 +74,9 @@ namespace stationeers.modding.exporter
                 "        public void OnLoaded(List<GameObject> prefabs)\n" +
                 "        {\n" +
                 "            MOD.AddPrefabs(prefabs);\n" +
+                "\n#if DEVELOPMENT_BUILD" +
+                "\n            Debug.Log($\"Loaded {prefabs.Count} prefabs\");" +
+                "\n#endif" +
                 "\n" +
                 "\n" +       // Additional initialization goes here
                 "        }\n" +
