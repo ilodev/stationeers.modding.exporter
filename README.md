@@ -35,11 +35,14 @@ and Bundle Version). The exporter package will keep the Player Settings and the 
 synchronized, becuase both share the same information. You can edit the About.xml file and the Player Settings
 will be updated or viceversa.
 
+Common settings between projects have been moved as user preferences, while individual per-mod configuration
+has been moved as project settings.
+
 The current Tools menu is temporary and contains individual test functions for the exporting process.
 
 ## Version
 
-Version 1.0.1
+Version 1.0.2
 
 ## Credits
 

@@ -2,6 +2,15 @@
 
 All notable changes to this package will be documented in this file. The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [1.0.2] - 2026-02-26
+
+### Improved exporter
+
+Removed temporary Tool menu entries.
+Fixed a bug when exporting non-serializable assets (e.g. shaders, text files) always marked as dirty.
+Moved customization for export folder and autorun of the game as user preferences.
+Moved mod info synchronization and additional export folder as project settings.
+General code clean up
 
 ## [1.0.1] - 2025-10-08
 
