@@ -17,63 +17,33 @@ namespace stationeers.modding.exporter
     [InitializeOnLoad]
     public static class AboutXmlPlayerSettingsWatcher
     {
-        private const string AboutPath = "Assets/About/About.xml";
-        private const string PrefEnabledKey = "AboutXmlPlayerSettingsWatcher_Enabled";
-
         private static string _lastProduct;
         private static string _lastCompany;
         private static string _lastVersion;
-        private static bool _enabled;
 
         static AboutXmlPlayerSettingsWatcher()
         {
-            _enabled = EditorPrefs.GetBool(PrefEnabledKey, true);
             SnapshotCurrent();
 
             EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
         }
 
-        // quick testing, Remove later
-        [MenuItem("Tools/About/Watcher/Enable", priority = 0)]
-        private static void EnableWatcher()
+        /// <summary>
+        /// Manual sync entry point (used by the Project Settings UI).
+        /// </summary>
+        public static void SyncNow(bool force)
         {
-            _enabled = true;
-            EditorPrefs.SetBool(PrefEnabledKey, true);
-            Debug.Log("[About Watcher] Enabled");
-        }
-
-        [MenuItem("Tools/About/Watcher/Enable", true)]
-        private static bool EnableValidate()
-        {
-            Menu.SetChecked("Tools/About/Watcher/Enable", _enabled);
-            return true;
-        }
-
-        [MenuItem("Tools/About/Watcher/Disable", priority = 1)]
-        private static void DisableWatcher()
-        {
-            _enabled = false;
-            EditorPrefs.SetBool(PrefEnabledKey, false);
-            Debug.Log("[About Watcher] Disabled");
-        }
-
-        [MenuItem("Tools/About/Watcher/Disable", true)]
-        private static bool DisableValidate()
-        {
-            Menu.SetChecked("Tools/About/Watcher/Disable", !_enabled);
-            return true;
-        }
-
-        [MenuItem("Tools/About/Sync PlayerSettings -> About.xml", priority = 20)]
-        private static void SyncNow()
-        {
-            TryWriteXmlFromPlayerSettings(force: true);
+            TryWriteXmlFromPlayerSettings(force);
+            SnapshotCurrent();
         }
 
         private static void Tick()
         {
-            if (!_enabled) return;
+            var settings = StationeersExporterSettings.instance;
+            bool needsToUpdate = settings.aboutAutoSyncPlayerToXml || settings.aboutAutoSyncBoth;
+            if (settings == null || !needsToUpdate)
+                return;
 
             var curProduct = PlayerSettings.productName ?? string.Empty;
             var curCompany = PlayerSettings.companyName ?? string.Empty;
@@ -100,7 +70,13 @@ namespace stationeers.modding.exporter
         {
             if (_writeInProgress) return;
 
-            var ta = AssetDatabase.LoadAssetAtPath<TextAsset>(AboutPath);
+            var settings = StationeersExporterSettings.instance;
+            if (settings == null)
+                return;
+
+            var aboutPath = string.IsNullOrEmpty(settings.aboutXmlPath) ? "Assets/About/About.xml" : settings.aboutXmlPath;
+
+            var ta = AssetDatabase.LoadAssetAtPath<TextAsset>(aboutPath);
             if (ta == null)
             {
                 // File not present; nothing to do.
@@ -116,7 +92,7 @@ namespace stationeers.modding.exporter
                 var root = doc.Root;
                 if (root == null || root.Name.LocalName != "ModMetadata")
                 {
-                    Debug.LogWarning("[About Watcher] Root element is not <ModMetadata>; skipping update: " + AboutPath);
+                    Debug.LogWarning("[About Watcher] Root element is not <ModMetadata>; skipping update: " + aboutPath);
                     return;
                 }
 
@@ -146,18 +122,18 @@ namespace stationeers.modding.exporter
 
                 // Write back with UTF-8 (with BOM). Use false if you prefer no BOM.
                 string xmlOut = doc.ToString(SaveOptions.None);
-                File.WriteAllText(AboutPath, xmlOut, new UTF8Encoding(true));
+                File.WriteAllText(aboutPath, xmlOut, new UTF8Encoding(settings.aboutWriteUtf8Bom));
 
                 // Reimport to update TextAsset
-                AssetDatabase.ImportAsset(AboutPath, ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset(aboutPath, ImportAssetOptions.ForceUpdate);
 
                 Debug.Log(string.Format(
                     "[About Watcher] Updated {0} -> Name=\"{1}\", Author=\"{2}\", Version=\"{3}\"",
-                    AboutPath, product, company, version));
+                    aboutPath, product, company, version));
             }
             catch (System.Exception ex)
             {
-                Debug.LogError("[About Watcher] Failed to update " + AboutPath + ":\n" + ex);
+                Debug.LogError("[About Watcher] Failed to update " + aboutPath + ":\n" + ex);
             }
             finally
             {

@@ -11,6 +11,7 @@ namespace stationeers.modding.exporter
     public sealed class StationeersExporterSettings : ScriptableSingleton<StationeersExporterSettings>
     {
         // About.xml sync
+        public bool aboutAutoSyncBoth = true; // Keep PlayerSettings and About.xml synchronized
         public bool aboutAutoSyncPlayerToXml = true;   // PlayerSettings -> About.xml watcher
         public bool aboutAutoSyncXmlToPlayer = true;   // About.xml -> PlayerSettings postprocessor/startup
         public string aboutXmlPath = "Assets/About/About.xml";

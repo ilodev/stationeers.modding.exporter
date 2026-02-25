@@ -70,7 +70,10 @@ namespace stationeers.modding.exporter
         {
             // A) Scenes: Unity's standard prompt
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                return false; // user canceled
+            {
+                Debug.Log("Cancelled");
+                return false;
+            }
 
             // B) Prefab Stage: explicit prompt, then save prefab asset (never the preview scene)
             var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
@@ -84,7 +87,11 @@ namespace stationeers.modding.exporter
                     "Cancel",          // 1
                     null
                 );
-                if (choice == 1) return false; // cancel
+                if (choice == 1)
+                {
+                    Debug.Log("Cancelled");
+                    return false; // cancel
+                }
 
                 bool ok;
                 PrefabUtility.SaveAsPrefabAsset(prefabStage.prefabContentsRoot, prefabStage.assetPath, out ok);
@@ -101,7 +108,7 @@ namespace stationeers.modding.exporter
             // D) Verify; log leftovers if any
             if (HasUnsavedChanges(out var leftover))
             {
-                Debug.LogWarning("[Preflight] Items still unsaved after prompts:\n - " + string.Join("\n - ", leftover));
+                Debug.LogWarning($"[Preflight] {leftover.Count} Items still unsaved after prompts:\n - " + string.Join("\n - ", leftover));
                 return false;
             }
             return true;
@@ -111,13 +118,13 @@ namespace stationeers.modding.exporter
         public static bool PromptUserToSaveAll() => SaveAllWithPrompts();
 
         // Menu helpers for quick testing, remove later
-        [MenuItem("Tools/Export/Preflight/Save Everything (with prompts)")]
+        //[MenuItem("Tools/Export/Preflight/Save Everything (with prompts)")]
         private static void MenuSaveWithPrompts()
         {
             Debug.Log(SaveAllWithPrompts() ? "Saved everything." : "Save canceled or failed.");
         }
 
-        [MenuItem("Tools/Export/Preflight/Check Unsaved")]
+        //[MenuItem("Tools/Export/Preflight/Check Unsaved")]
         private static void MenuCheck()
         {
             Debug.Log(HasUnsavedChanges(out var dirty)

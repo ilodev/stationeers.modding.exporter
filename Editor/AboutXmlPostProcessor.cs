@@ -14,7 +14,11 @@ namespace stationeers.modding.exporter
 {
     public class AboutXmlPostprocessor : AssetPostprocessor
     {
-        private const string AboutPath = "Assets/About/About.xml";
+        private static string GetAboutPath()
+        {
+            var s = StationeersExporterSettings.instance;
+            return (s != null && !string.IsNullOrEmpty(s.aboutXmlPath)) ? s.aboutXmlPath : "Assets/About/About.xml";
+        }
 
         // Fires on import/move/reimport
         static void OnPostprocessAllAssets(
@@ -23,9 +27,15 @@ namespace stationeers.modding.exporter
             string[] movedAssets,
             string[] movedFromAssetPaths)
         {
-            if (importedAssets.Contains(AboutPath) || movedAssets.Contains(AboutPath))
+            var settings = StationeersExporterSettings.instance;
+            bool needsToUpdate = settings.aboutAutoSyncXmlToPlayer || settings.aboutAutoSyncBoth;
+            if (settings != null && !needsToUpdate)
+                return;
+
+            var aboutPath = GetAboutPath();
+            if (importedAssets.Contains(aboutPath) || movedAssets.Contains(aboutPath))
             {
-                ApplyAboutToPlayerSettings(logPrefix: "[About.xml Import]");
+                ApplyAboutToPlayerSettings(aboutPath, logPrefix: "[About.xml Import]");
             }
         }
 
@@ -33,22 +43,29 @@ namespace stationeers.modding.exporter
         [InitializeOnLoadMethod]
         private static void ApplyOnLoad()
         {
-            if (AssetDatabase.LoadAssetAtPath<TextAsset>(AboutPath) != null)
-                ApplyAboutToPlayerSettings(logPrefix: "[About.xml Startup]");
+            var s = StationeersExporterSettings.instance;
+            if (s != null && !s.aboutAutoSyncXmlToPlayer)
+                return;
+
+            var aboutPath = GetAboutPath();
+            if (AssetDatabase.LoadAssetAtPath<TextAsset>(aboutPath) != null)
+                ApplyAboutToPlayerSettings(aboutPath, logPrefix: "[About.xml Startup]");
         }
 
-        [MenuItem("Tools/About/Apply About.xml -> Player Settings")]
-        private static void ApplyFromMenu()
+        /// <summary>
+        /// Manual apply entry point (used by the Project Settings UI).
+        /// </summary>
+        public static void ApplyNow()
         {
-            ApplyAboutToPlayerSettings(logPrefix: "[About.xml Manual]");
+            ApplyAboutToPlayerSettings(GetAboutPath(), logPrefix: "[About.xml Manual]");
         }
 
-        private static void ApplyAboutToPlayerSettings(string logPrefix)
+        private static void ApplyAboutToPlayerSettings(string aboutPath, string logPrefix)
         {
-            var ta = AssetDatabase.LoadAssetAtPath<TextAsset>(AboutPath);
+            var ta = AssetDatabase.LoadAssetAtPath<TextAsset>(aboutPath);
             if (ta == null)
             {
-                Debug.LogWarning(logPrefix + " File not found at " + AboutPath);
+                Debug.LogWarning(logPrefix + " File not found at " + aboutPath);
                 return;
             }
 
@@ -106,7 +123,7 @@ namespace stationeers.modding.exporter
             }
             catch (System.Exception ex)
             {
-                Debug.LogError(logPrefix + " Failed to parse/apply " + AboutPath + ":\n" + ex);
+                Debug.LogError(logPrefix + " Failed to parse/apply " + aboutPath + ":\n" + ex);
             }
         }
     }

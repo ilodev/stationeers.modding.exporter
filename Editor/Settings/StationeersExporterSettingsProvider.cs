@@ -41,40 +41,41 @@ namespace stationeers.modding.exporter
         {
             var s = StationeersExporterSettings.instance;
 
-            _aboutFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_aboutFoldout, "About.xml Sync");
+            _aboutFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_aboutFoldout, "Mod info Synchronization");
             if (_aboutFoldout)
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
                     EditorGUI.BeginChangeCheck();
+                    using (new EditorGUI.DisabledScope(true))
+                    {
+                        s.aboutXmlPath = EditorGUILayout.TextField("About.xml Path", s.aboutXmlPath);
+                        //s.aboutWriteUtf8Bom = EditorGUILayout.Toggle(new GUIContent("Write UTF-8 BOM"), s.aboutWriteUtf8Bom);
+                        EditorGUILayout.Space(4);
+                    }
 
-                    s.aboutXmlPath = EditorGUILayout.TextField("About.xml Path", s.aboutXmlPath);
-                    s.aboutWriteUtf8Bom = EditorGUILayout.Toggle(new GUIContent("Write UTF-8 BOM"), s.aboutWriteUtf8Bom);
-
-                    EditorGUILayout.Space(4);
-
-                    s.aboutAutoSyncPlayerToXml = EditorGUILayout.Toggle(new GUIContent("Auto-sync PlayerSettings → About.xml"), s.aboutAutoSyncPlayerToXml);
-                    s.aboutAutoSyncXmlToPlayer = EditorGUILayout.Toggle(new GUIContent("Auto-sync About.xml → PlayerSettings"), s.aboutAutoSyncXmlToPlayer);
+                    s.aboutAutoSyncBoth = EditorGUILayout.Toggle(new GUIContent("Auto-sync mod info"), s.aboutAutoSyncBoth);
+                    //s.aboutAutoSyncPlayerToXml = EditorGUILayout.Toggle(new GUIContent("Auto-sync PlayerSettings → About.xml"), s.aboutAutoSyncPlayerToXml);
+                    //s.aboutAutoSyncXmlToPlayer = EditorGUILayout.Toggle(new GUIContent("Auto-sync About.xml → PlayerSettings"), s.aboutAutoSyncXmlToPlayer);
 
                     EditorGUILayout.Space(8);
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         if (GUILayout.Button("Sync PlayerSettings → About.xml"))
-                            //AboutXmlPlayerSettingsWatcher.SyncNow(force: true);
-                            Debug.Log("Unimplemented 1");
+                            AboutXmlPlayerSettingsWatcher.SyncNow(force: true);
 
                         if (GUILayout.Button("Apply About.xml → PlayerSettings"))
-                            //AboutXmlPostprocessor.ApplyNow();
-                            Debug.Log("Unimplemented 1");
+                            AboutXmlPostprocessor.ApplyNow();
                     }
 
                     if (EditorGUI.EndChangeCheck())
                         s.SaveNow();
 
                     EditorGUILayout.Space(6);
-                    EditorGUILayout.HelpBox(
-                        "Keeps PlayerSettings (Product/Company/Version) and About.xml in sync. These options are project-wide.",
-                        MessageType.Info);
+                    if (s.aboutAutoSyncBoth)
+                        EditorGUILayout.HelpBox("PlayerSettings (Product/Company/Version) and About.xml will be synchronized automatically.", MessageType.None);
+                    else
+                        EditorGUILayout.HelpBox("PlayerSettings and About.xml will not be synchronized automatically.", MessageType.Warning);
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
