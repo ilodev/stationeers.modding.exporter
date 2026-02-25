@@ -22,7 +22,7 @@ namespace stationeers.modding.exporter
         [MenuItem("Tools/Setup/Default Assembly")]
         public static void CreateDefaultAssembly()
         {
-            string productName = LaunchPadExport.Sanitize(PlayerSettings.productName);
+            string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName);
 
             // don't overwrite existing files.
             string path = Path.Combine(Application.dataPath, $"{productName}.asmdef");

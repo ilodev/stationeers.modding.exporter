@@ -9,7 +9,7 @@ using UnityEngine.TestTools;
 
 namespace stationeers.modding.exporter
 {
-    public static class LaunchPadExport
+    public static class StationeersModdingExport
     {
         public static string exportFolder;
         public static string tempFolder;

@@ -116,7 +116,7 @@ namespace stationeers.modding.exporter
                 return;
             }
             else
-                LaunchPadExport.Export(options);
+                StationeersModdingExport.Export(options);
 
             bool isBuildAndRun = (options.options & BuildOptions.AutoRunPlayer) != 0;
 

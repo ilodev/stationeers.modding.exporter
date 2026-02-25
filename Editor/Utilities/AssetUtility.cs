@@ -26,7 +26,7 @@ namespace stationeers.modding.exporter
         [MenuItem("Tools/Setup/Default Script")]
         public static void CreateDefaultScript()
         {
-            string productName = LaunchPadExport.Sanitize(PlayerSettings.productName);
+            string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName);
             string productVersion = PlayerSettings.bundleVersion ?? "1.0.0";
             string DefaultFilename = productName + ".cs";
 
@@ -88,8 +88,8 @@ namespace stationeers.modding.exporter
         [MenuItem("Tools/Setup/Default About")]
         public static void CreateDefaultAbout()
         {
-            string companyName = LaunchPadExport.Sanitize(PlayerSettings.companyName ?? "Default Company");
-            string productName = LaunchPadExport.Sanitize(PlayerSettings.productName ?? "ProductName");
+            string companyName = StationeersModdingExport.Sanitize(PlayerSettings.companyName ?? "Default Company");
+            string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName ?? "ProductName");
             string productVersion = PlayerSettings.bundleVersion ?? "1.0.0";
             string DefaultFilename = "About.xml";
 
