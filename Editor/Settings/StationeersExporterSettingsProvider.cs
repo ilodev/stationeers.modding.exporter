@@ -31,8 +31,10 @@ namespace stationeers.modding.exporter
                     DrawExportSection();
                     EditorGUILayout.Space(8);
                     DrawAboutSection();
-                    EditorGUILayout.Space(8);
-                    DrawUtilitiesSection();
+
+                    // Disabled temporarily
+                    //EditorGUILayout.Space(8);
+                    //DrawUtilitiesSection();
                 }
             };
         }

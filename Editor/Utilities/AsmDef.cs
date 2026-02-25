@@ -19,7 +19,7 @@ namespace stationeers.modding.exporter
         public string[] precompiledReferences;
         public string[] references;
 
-        [MenuItem("Tools/Setup/Default Assembly")]
+        //[MenuItem("Tools/Setup/Default Assembly")]
         public static void CreateDefaultAssembly()
         {
             string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName);

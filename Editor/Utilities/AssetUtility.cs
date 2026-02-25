@@ -14,7 +14,7 @@ namespace stationeers.modding.exporter
     /// </summary>
     public class AssetUtility
     {
-        [MenuItem("Tools/Setup/Default Mod Setup", priority = 50)]
+        //[MenuItem("Tools/Setup/Default Mod Setup", priority = 50)]
         public static void CreateDefaultSetup()
         {
             CreateDefaultAbout();
@@ -23,7 +23,7 @@ namespace stationeers.modding.exporter
         }
 
 
-        [MenuItem("Tools/Setup/Default Script")]
+        //[MenuItem("Tools/Setup/Default Script")]
         public static void CreateDefaultScript()
         {
             string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName);
@@ -85,7 +85,7 @@ namespace stationeers.modding.exporter
         }
 
 
-        [MenuItem("Tools/Setup/Default About")]
+        //[MenuItem("Tools/Setup/Default About")]
         public static void CreateDefaultAbout()
         {
             string companyName = StationeersModdingExport.Sanitize(PlayerSettings.companyName ?? "Default Company");
