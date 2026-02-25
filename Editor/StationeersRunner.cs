@@ -25,46 +25,20 @@ namespace stationeers.modding.exporter
         private const string AppId = "544550"; // Stationeers (Steam) — steamdb confirms
         private const string ExeName = "rocketstation.exe";
         private const string PrefExeOverride = "StationeersRunner.ExeOverride";
-        private static bool _enabled;
         private const string PrefEnabledKey = "StationeersRunner_Enabled";
 
-        // quick testing, Remove later
-        [MenuItem("Tools/Stationeers/Enable AutoRun", priority = 0)]
-        private static void EnableWatcher()
+        // Try running the game if autorun is enabled
+        public static void TryRunStationeers()
         {
-            _enabled = true;
-            EditorPrefs.SetBool(PrefEnabledKey, true);
-            UnityEngine.Debug.Log("[AutoRun] Enabled");
-        }
-
-        [MenuItem("Tools/Stationeers/Enable AutoRun", true)]
-        private static bool EnableValidate()
-        {
-            Menu.SetChecked("Tools/Stationeers/Enable AutoRun", _enabled);
-            return true;
-        }
-
-        [MenuItem("Tools/Stationeers/Disable AutoRun", priority = 1)]
-        private static void DisableWatcher()
-        {
-            _enabled = false;
-            EditorPrefs.SetBool(PrefEnabledKey, false);
-            UnityEngine.Debug.Log("[AutoRun] Disabled");
-        }
-
-        [MenuItem("Tools/Stationeers/Disable AutoRun", true)]
-        private static bool DisableValidate()
-        {
-            Menu.SetChecked("Tools/Stationeers/Disable AutoRun", !_enabled);
-            return true;
-        }
-
-        [MenuItem("Tools/Stationeers/Run")]
-        public static void RunStationeers()
-        {
-            if (!_enabled)
+            if (!EditorPrefs.GetBool(PrefEnabledKey, false))
                 return;
 
+            RunStationeers();
+        }
+
+        [MenuItem("Tools/Stationeers/Launch game")]
+        public static void RunStationeers()
+        {
             // 1) Try Steam URI
             if (TryOpenSteamUri())
                 return;
@@ -93,27 +67,19 @@ namespace stationeers.modding.exporter
             EditorUtility.DisplayDialog("Stationeers", "Could not find Stationeers. Please install it via Steam or itch.io, or set an override path.", "OK");
         }
 
-        [MenuItem("Tools/Stationeers/Clear Manual Path")]
-        private static void ClearOverride()
-        {
-            EditorPrefs.DeleteKey(PrefExeOverride);
-            UnityEngine.Debug.Log("[StationeersRunner] Cleared manual path override.");
-        }
-
-
-
         // --- Steam URI ---
-
         private static bool TryOpenSteamUri()
         {
             try
             {
                 // This lets Steam resolve the install and handle arguments, updates, etc.
-                Process.Start(new ProcessStartInfo
+                Process _process = Process.Start(new ProcessStartInfo
                 {
                     FileName = $"steam://rungameid/{AppId}",
-                    UseShellExecute = true
+                    UseShellExecute = true,
+
                 });
+                UnityEngine.Debug.Log($"Process started {_process.Id}: {_process.MainModule}");
                 return true;
             }
             catch (Exception ex)
