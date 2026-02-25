@@ -16,12 +16,12 @@ namespace stationeers.modding.exporter
         [SettingsProvider]
         public static SettingsProvider CreateProvider()
         {
-            return new SettingsProvider("Preferences/Stationeers Exporter", SettingsScope.User)
+            return new SettingsProvider("Preferences/Stationeers Modding Exporter", SettingsScope.User)
             {
-                label = "Stationeers Exporter",
+                label = "Stationeers Modding Exporter",
                 guiHandler = _ =>
                 {
-                    EditorGUILayout.LabelField("Stationeers Exporter (User Prefs)", EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField("User preferences for the exporter package, shared across all Stationeers modding projects.", EditorStyles.boldLabel);
                     EditorGUILayout.Space(6);
                     DrawExportFolderPrefs();
                     EditorGUILayout.Space(6);
@@ -76,7 +76,7 @@ namespace stationeers.modding.exporter
                     {
                         using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(exportFolder) || !Directory.Exists(exportFolder)))
                         {
-                            if (GUILayout.Button("Reveal in Explorer/Finder", GUILayout.Height(22)))
+                            if (GUILayout.Button("Open destination folder", GUILayout.Height(22)))
                                 EditorUtility.RevealInFinder(exportFolder);
                         }
 
@@ -90,25 +90,12 @@ namespace stationeers.modding.exporter
 
                     EditorGUILayout.Space(6);
 
-                    // Status / validation
                     if (string.IsNullOrEmpty(exportFolder))
-                    {
-                        EditorGUILayout.HelpBox(
-                            "No export folder set. The build/export step will ask you to choose one.",
-                            MessageType.Info);
-                    }
+                        EditorGUILayout.HelpBox("No export folder set. The build/export step will ask you to choose one.", MessageType.Info);
                     else if (!Directory.Exists(exportFolder))
-                    {
-                        EditorGUILayout.HelpBox(
-                            "This folder does not exist (or is not accessible). Pick another folder or create it.",
-                            MessageType.Warning);
-                    }
+                        EditorGUILayout.HelpBox("This folder does not exist (or is not accessible). Pick another folder or create it.", MessageType.Warning);
                     else
-                    {
-                        EditorGUILayout.HelpBox(
-                            "Export folder is set and will be used as the default destination.",
-                            MessageType.None);
-                    }
+                        EditorGUILayout.HelpBox("Export folder is set and will be used as the default destination when exporting any mod.", MessageType.None);
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
@@ -125,7 +112,7 @@ namespace stationeers.modding.exporter
                     string overridePath = StationeersExporterUserPreferences.RunnerExeOverride;
 
                     EditorGUI.BeginChangeCheck();
-                    enabled = EditorGUILayout.Toggle("Enable Run", enabled);
+                    enabled = EditorGUILayout.Toggle("Enable running the game", enabled);
                     if (EditorGUI.EndChangeCheck())
                     {
                         Debug.Log($"Autorun the game on build: {enabled}");
@@ -154,16 +141,11 @@ namespace stationeers.modding.exporter
 
                     EditorGUILayout.Space(8);
 
-                    using (new EditorGUI.DisabledScope(!enabled))
-                    {
-                        if (GUILayout.Button("Run Stationeers"))
-                            StationeersRunner.RunStationeers();
-                    }
+                    if (GUILayout.Button("Run Stationeers"))
+                        StationeersRunner.RunStationeers();
 
-                    EditorGUILayout.Space(6);
-                    EditorGUILayout.HelpBox(
-                        "These preferences are per-user/per-machine (not saved in the project).",
-                        MessageType.Info);
+                    //EditorGUILayout.Space(6);
+                    //EditorGUILayout.HelpBox("These preferences are per-user/per-machine (not saved in the project).", MessageType.Info);
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
