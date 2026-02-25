@@ -49,6 +49,15 @@ namespace stationeers.modding.exporter
                 if (!File.Exists(path)) continue;
                 if (AssetDatabase.GetMainAssetTypeAtPath(path) == null) continue;
 
+                // Avoid assets Unity can't serialize
+                var mainType = AssetDatabase.GetMainAssetTypeAtPath(path);
+                if (mainType == typeof(Shader) ||           // .shader source
+                    mainType == typeof(MonoScript) ||       // .cs source
+                    mainType == typeof(TextAsset))          // generic text
+                {
+                    continue;
+                }
+
                 if (seen.Add(path))
                     dirtyItems.Add(path);
             }
