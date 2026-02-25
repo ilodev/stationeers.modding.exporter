@@ -1,18 +1,19 @@
-// DevelopmentBuildDefineSync.cs
-// Mirrors the "Development Build" checkbox to a scripting define symbol.
-
 using UnityEditor;
+using UnityEngine;
 
 namespace stationeers.modding.exporter
 {
-
+    /// <summary>
+    /// Mirrors the "Development Build" checkbox to a scripting define symbol, it populates the UI flag 
+    /// as a define into the building groups allowing the code to recompile with/without the development define.
+    /// </summary>
     [InitializeOnLoad]
     public static class DevelopmentBuildDefineSync
     {
         // Change this if you want a different symbol name
         private const string Define = "DEVELOPMENT_BUILD";
 
-        // If true, we update ALL groups when the flag changes.
+        // If true, we update ALL build groups when the flag changes.
         // If false, we only update the currently selected build target group.
         private const bool SyncAllGroups = false;
 
@@ -69,26 +70,25 @@ namespace stationeers.modding.exporter
             string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(group) ?? string.Empty;
 
             // Quick membership check (whole token match)
-            bool has = HasToken(defines, Define);
+            bool hasToken = HasToken(defines, Define);
 
-            if (enabled && !has)
+            if (enabled && !hasToken)
             {
                 // Add token
                 defines = AppendToken(defines, Define);
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(group, defines);
-                // Optional: Debug.Log($"[DevDefine] Added {Define} to {group}");
+                //Debug.Log($"[DevDefine] Added {Define} to {group}");
             }
-            else if (!enabled && has)
+            else if (!enabled && hasToken)
             {
                 // Remove token
                 defines = RemoveToken(defines, Define);
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(group, defines);
-                // Optional: Debug.Log($"[DevDefine] Removed {Define} from {group}");
+                //Debug.Log($"[DevDefine] Removed {Define} from {group}");
             }
         }
 
         // Helpers for semicolon-separated define strings
-
         private static bool HasToken(string list, string token)
         {
             if (string.IsNullOrEmpty(list)) return false;
@@ -124,18 +124,5 @@ namespace stationeers.modding.exporter
             return sb.ToString();
         }
 
-        // Menu: manual sync (current group)
-        [MenuItem("Tools/Build/Sync Development Build Define (current group)")]
-        private static void MenuSyncCurrent()
-        {
-            Sync(currentOnly: true);
-        }
-
-        // Menu: manual sync (all groups)
-        [MenuItem("Tools/Build/Sync Development Build Define (all groups)")]
-        private static void MenuSyncAll()
-        {
-            Sync(currentOnly: false);
-        }
     }
 }
