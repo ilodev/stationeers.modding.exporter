@@ -8,12 +8,12 @@ using UnityEngine;
 namespace stationeers.modding.exporter
 {
     [InitializeOnLoad]
-    public static class BuildButtonHook
+    public static class BuildButtonOverrides
     {
         //TODO: Probably move all keys to a single class
         private const string ExportFolderKey = "StationeersExport_Folder";
 
-        static BuildButtonHook()
+        static BuildButtonOverrides()
         {
             // Register once on editor
             BuildPlayerWindow.RegisterGetBuildPlayerOptionsHandler(GetBuildPlayerOptions);

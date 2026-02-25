@@ -15,7 +15,7 @@ namespace stationeers.modding.exporter
     {
         private static bool _aboutFoldout = true;
         private static bool _exportFoldout = true;
-        private static bool _utilitiesFoldout = false;
+        private static bool _utilitiesFoldout = true;
 
         [SettingsProvider]
         public static SettingsProvider CreateProvider()
@@ -137,8 +137,6 @@ namespace stationeers.modding.exporter
                         s.SaveNow();
 
                     EditorGUILayout.Space(6);
-                    EditorGUILayout.HelpBox(
-                        "These folders are copied into the mod output folder.", MessageType.Info);
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
