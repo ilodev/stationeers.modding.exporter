@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,32 +16,28 @@ namespace stationeers.modding.exporter
 
         public static string Sanitize(string part)
         {
+            if (string.IsNullOrEmpty(part))
+                return "Unnamed";
+
             // Replace invalid chars with underscores
             string clean = Regex.Replace(part, @"[^A-Za-z0-9_]", "_");
-            // Remove leading digits and underscores
+
+            // Remove leading chars until a letter or underscore
             clean = Regex.Replace(clean, @"^[^A-Za-z_]+", "");
-            // PascalCase words separated by underscores
-            clean = string.Join("", clean
-                .Split(new[] { '_', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)
-                .Select(w => char.ToUpper(w[0]) + w.Substring(1).ToLower()));
-            // Fallback if it became empty
+
+            // Split on underscores/spaces, preserve inner casing
+            clean = string.Concat(
+                clean
+                    .Split(new[] { '_', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(w =>
+                    {
+                        if (w.Length == 0) return "";
+                        if (w.Length == 1) return w.ToUpper();
+                        return char.ToUpper(w[0]) + w.Substring(1);
+                    })
+            );
+
             return string.IsNullOrEmpty(clean) ? "Unnamed" : clean;
-        }
-
-        static string GetExportFolder(BuildPlayerOptions opts)
-        {
-            bool isFileOutput =
-                opts.target == BuildTarget.StandaloneWindows ||
-                opts.target == BuildTarget.StandaloneWindows64 ||
-                opts.target == BuildTarget.StandaloneLinux64 ||
-                opts.target == BuildTarget.Android ||        // .apk or .aab
-                opts.target == BuildTarget.WSAPlayer;        // .appx/.msix
-
-            if (isFileOutput)
-                return Path.GetDirectoryName(opts.locationPathName);
-
-            // macOS builds are .app bundles (folders). WebGL/iOS are folders too.
-            return opts.locationPathName;
         }
 
         private static void DeleteOutputFolder(string folder)
@@ -134,17 +131,40 @@ namespace stationeers.modding.exporter
         private static void ExportAssets(BuildPlayerOptions options)
         {
             Debug.Log("Exporting copy assets...");
-            string gamedata = Path.Combine("Assets", "GameData");
-            string about = Path.Combine("Assets", "About");
-            var dir = new DirectoryInfo(gamedata);
-            if (dir.Exists)
+
+            var settings = StationeersExporterSettings.instance;
+            var folders = (settings != null && settings.exportFolders != null)
+                ? settings.exportFolders
+                : new List<string> { "Assets/GameData", "Assets/About" };
+
+            foreach (var folder in folders)
             {
-                CopyDirectory(gamedata, Path.Combine(tempFolder, "GameData"), true);
-            }
-            dir = new DirectoryInfo(about);
-            if (dir.Exists)
-            {
-                CopyDirectory(about, Path.Combine(tempFolder, "About"), true);
+                if (string.IsNullOrEmpty(folder))
+                    continue;
+
+                // Only support Assets/* folders
+                var normalized = folder.Replace('\\', '/');
+                if (!normalized.StartsWith("Assets/"))
+                {
+                    Debug.LogWarning($"Skipping export folder (must be under Assets/): {folder}");
+                    continue;
+                }
+
+                var abs = Path.GetFullPath(normalized);
+                if (!Directory.Exists(abs))
+                {
+                    // Also try relative to project root without Path.GetFullPath quirks
+                    if (!Directory.Exists(normalized))
+                    {
+                        Debug.LogWarning($"Export folder not found: {folder}");
+                        continue;
+                    }
+                }
+
+                // Preserve relative structure under Assets/
+                var relUnderAssets = normalized.Substring("Assets/".Length);
+                var dest = Path.Combine(tempFolder, relUnderAssets);
+                CopyDirectory(normalized, dest, true);
             }
         }
 
@@ -159,7 +179,7 @@ namespace stationeers.modding.exporter
         private static int ExportAssetBundles(BuildPlayerOptions options)
         {
             Debug.Log("Export AssetBundles");
-            
+
             List<string> assetPaths = AssetUtility.GetAssets("t:prefab t:scriptableobject");
             assetPaths.ForEach(s => SetAssetBundle(s));
             Debug.Log($"- Total Asset count {assetPaths.Count}");
@@ -185,8 +205,8 @@ namespace stationeers.modding.exporter
             int assemblies = 0;
             int bundles = 0;
 
-            exportFolder = GetExportFolder(options);
-            tempFolder = Path.Combine(exportFolder, Sanitize(PlayerSettings.productName));
+            tempFolder = options.locationPathName;
+            Debug.Log("********** Export folder" + tempFolder);
 
             if ((options.options & BuildOptions.CleanBuildCache) != 0)
                 DeleteOutputFolder(tempFolder);
@@ -201,7 +221,7 @@ namespace stationeers.modding.exporter
             // TODO: Consider cleaning up the bundles first.
             if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
                 bundles = ExportAssetBundles(options);
-        
+
             Debug.Log($"Export complete: {assemblies} Assemblies, {bundles} Assets.");
         }
     }

@@ -1,4 +1,7 @@
+using System;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -51,6 +54,32 @@ namespace stationeers.modding.exporter
             return options;
         }
 
+        public static string Sanitize(string part)
+        {
+            if (string.IsNullOrEmpty(part))
+                return "Unnamed";
+
+            // Replace invalid chars with underscores
+            string clean = Regex.Replace(part, @"[^A-Za-z0-9_]", "_");
+
+            // Remove leading chars until a letter or underscore
+            clean = Regex.Replace(clean, @"^[^A-Za-z_]+", "");
+
+            // Split on underscores/spaces, preserve inner casing
+            clean = string.Concat(
+                clean
+                    .Split(new[] { '_', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(w =>
+                    {
+                        if (w.Length == 0) return "";
+                        if (w.Length == 1) return w.ToUpper();
+                        return char.ToUpper(w[0]) + w.Substring(1);
+                    })
+            );
+
+            return string.IsNullOrEmpty(clean) ? "Unnamed" : clean;
+        }
+
         /// <summary>
         /// Completely unnecessary, but kept inline with Unity expectations. We only need the folder
         /// </summary>
@@ -64,29 +93,8 @@ namespace stationeers.modding.exporter
             if (string.IsNullOrEmpty(product))
                 product = "StationeersModdingExporter";
 
-            // Handle common targets
-            switch (options.target)
-            {
-                case BuildTarget.StandaloneWindows:
-                case BuildTarget.StandaloneWindows64:
-                    return Path.Combine(exportFolder, product + ".exe");
-
-                case BuildTarget.StandaloneOSX:
-                    // Unity expects .app bundle path
-                    return Path.Combine(exportFolder, product + ".app");
-
-                case BuildTarget.StandaloneLinux64:
-                    // Often no extension; Unity writes an executable file
-                    return Path.Combine(exportFolder, product);
-
-                default:
-                    // For others, fall back to whatever Unity chose if any,
-                    // or just use folder/product as a sane guess.
-                    if (!string.IsNullOrEmpty(options.locationPathName))
-                        return options.locationPathName;
-
-                    return Path.Combine(exportFolder, product);
-            }
+            // Ignore options.target and always return the sanitized version of the output path + product name
+            return Path.Combine(exportFolder, Sanitize(product));
         }
 
         /// <summary>
