@@ -128,9 +128,15 @@ namespace stationeers.modding.exporter
             }
         }
 
-        private static void ExportAssets(BuildPlayerOptions options)
+        /// <summary>
+        /// Export additional folders from Assets/
+        /// </summary>
+        /// <param name="options"></param>
+        private static int ExportAssets(BuildPlayerOptions options)
         {
-            Debug.Log("Exporting copy assets...");
+            int exportedFolders = 0;
+
+            Debug.Log("Exporting assets...");
 
             var settings = StationeersExporterSettings.instance;
             var folders = (settings != null && settings.exportFolders != null)
@@ -153,7 +159,7 @@ namespace stationeers.modding.exporter
                 var abs = Path.GetFullPath(normalized);
                 if (!Directory.Exists(abs))
                 {
-                    // Also try relative to project root without Path.GetFullPath quirks
+                    // Also try relative to project root to avoid Path.GetFullPath quirks
                     if (!Directory.Exists(normalized))
                     {
                         Debug.LogWarning($"Export folder not found: {folder}");
@@ -165,15 +171,32 @@ namespace stationeers.modding.exporter
                 var relUnderAssets = normalized.Substring("Assets/".Length);
                 var dest = Path.Combine(tempFolder, relUnderAssets);
                 CopyDirectory(normalized, dest, true);
+                exportedFolders++;
             }
+
+            return exportedFolders;
         }
 
+        /// <summary>
+        /// Assign an assetbundle to an assetpath
+        /// </summary>
+        /// <param name="assetPath"></param>
+        /// <param name="variant"></param>
         public static void SetAssetBundle(string assetPath, string variant = "assets")
         {
-            //Debug.Log($"PATH: {assetPath}");
             var importer = AssetImporter.GetAtPath(assetPath);
             importer.assetBundleName = Sanitize(PlayerSettings.productName);
             importer.assetBundleVariant = variant;
+        }
+
+        /// <summary>
+        /// Removes the assetbundle from an assetpath
+        /// </summary>
+        /// <param name="assetPath"></param>
+        public static void ResetAssetBundle(string assetPath)
+        {
+            var importer = AssetImporter.GetAtPath(assetPath);
+            importer.SetAssetBundleNameAndVariant(null, null);
         }
 
         static List<string> SyncSceneAssetBundles(string bundleName)
@@ -223,6 +246,7 @@ namespace stationeers.modding.exporter
             // Ensure path exists
             scenePaths = scenePaths.Where(System.IO.File.Exists).ToList();
 
+
             // Forcing building platform as standalone windows for now.
             var platform = BuildTarget.StandaloneWindows.ToString();
             var subDir = Path.Combine(tempFolder, platform);
@@ -233,11 +257,16 @@ namespace stationeers.modding.exporter
             return assetPaths.Count;
         }
 
+        /// <summary>
+        /// Export process
+        /// </summary>
+        /// <param name="options"></param>
         public static void Export(BuildPlayerOptions options)
         {
             Debug.Log("Export started");
             int assemblies = 0;
-            int bundles = 0;
+            int assets = 0;
+            int folderAssets = 0;
 
             tempFolder = options.locationPathName;
             Debug.Log("********** Export folder" + tempFolder);
@@ -250,13 +279,13 @@ namespace stationeers.modding.exporter
             assemblies = ExportAssemblies(options);
 
             if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
-                ExportAssets(options);
+                folderAssets = ExportAssets(options);
 
             // TODO: Consider cleaning up the bundles first.
             if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
-                bundles = ExportAssetBundles(options);
+                assets = ExportAssetBundles(options);
 
-            Debug.Log($"Export complete: {assemblies} Assemblies, {bundles} Assets.");
+            Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders.");
         }
     }
 }
