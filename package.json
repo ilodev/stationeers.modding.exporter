@@ -1,6 +1,6 @@
 {
   "name": "stationeers.modding.exporter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "displayName": "Stationeers Modding Exporter",
   "description": "A Unity Editor-only package to create/export LaunchPad mods.",
   "unity": "2022.3",

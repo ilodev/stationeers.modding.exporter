@@ -71,18 +71,6 @@ namespace stationeers.modding.exporter
                 EditorUtility.RevealInFinder(path);
             }
 
-            [MenuItem("Tools/Stationeers/Exporter/Print Last Export Manifest (Console)")]
-            public static void PrintLastExportManifest()
-            {
-                var m = StationeersExportManifestStore.LoadOrNull();
-                if (m == null)
-                {
-                    Debug.LogWarning("No manifest found yet. Run an export first.");
-                    return;
-                }
-
-                Debug.Log(JsonUtility.ToJson(m, true));
-            }
         }
     }
 }

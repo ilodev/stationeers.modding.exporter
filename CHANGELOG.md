@@ -2,6 +2,14 @@
 
 All notable changes to this package will be documented in this file. The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [1.0.3] - 2026-02-26
+
+### Improved exporter
+
+Saving build summary as export manifest in Library.
+Added autoincrement option for the bundleVersion in the export process.
+Added sanity validation in project settings.
+
 ## [1.0.2] - 2026-02-26
 
 ### Improved exporter
