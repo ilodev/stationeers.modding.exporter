@@ -52,8 +52,12 @@ namespace stationeers.modding.exporter
                 // Avoid assets Unity can't serialize
                 var mainType = AssetDatabase.GetMainAssetTypeAtPath(path);
                 if (mainType == typeof(Shader) ||           // .shader source
-                    mainType == typeof(MonoScript) ||       // .cs source
-                    mainType == typeof(TextAsset))          // generic text
+                    mainType == typeof(MonoScript) ||    // .cs
+                    mainType == typeof(Shader) ||        // .shader source
+                    mainType == typeof(Font) ||          // .ttf / .otf (often better as loose files)
+                    mainType == typeof(TextAsset) ||     // .txt / .json / .xml / etc
+                    mainType == typeof(UnityEditor.DefaultAsset) // folders / unknown
+                )
                 {
                     continue;
                 }
