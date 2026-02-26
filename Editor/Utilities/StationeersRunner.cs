@@ -35,24 +35,26 @@ namespace stationeers.modding.exporter
             RunStationeers();
         }
 
+
         [MenuItem("Tools/Stationeers/Launch game")]
         public static void RunStationeers()
         {
-            // 1) Try Steam URI
+
+            // 1) Try manual override from EditorPrefs
+            var pref = EditorPrefs.GetString(PrefExeOverride, string.Empty);
+            if (TryLaunch(ValidateExe(pref)))
+                return;
+
+            // 2) Try Steam URI
             if (TryOpenSteamUri())
                 return;
 
-            // 2) Try direct EXE via Steam library scan
+            // 3) Try direct EXE via Steam library scan
             if (TryLaunch(FindSteamExe()))
                 return;
 
-            // 3) Try direct EXE via itch.io app installs
+            // 4) Try direct EXE via itch.io app installs
             if (TryLaunch(FindItchExe()))
-                return;
-
-            // 4) Try manual override from EditorPrefs
-            var pref = EditorPrefs.GetString(PrefExeOverride, string.Empty);
-            if (TryLaunch(ValidateExe(pref)))
                 return;
 
             // 5) Prompt user to pick the executable once, then save it
