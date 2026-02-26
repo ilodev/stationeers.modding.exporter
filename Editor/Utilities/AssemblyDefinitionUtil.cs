@@ -15,7 +15,6 @@ namespace stationeers.modding.exporter
     /// and then imports it so Unity picks it up.
     ///
     /// Notes:
-    /// - This is Editor-only code (depends on UnityEditor).
     /// - Paths passed to UnityEditor APIs (AssetDatabase) must be project-relative (for example "Assets/MyFolder").
     /// - After creating a new asmdef, Unity may need to recompile scripts. This class requests compilation.
     /// </remarks>
