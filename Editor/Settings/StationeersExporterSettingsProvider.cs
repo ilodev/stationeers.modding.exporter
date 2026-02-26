@@ -10,7 +10,6 @@ namespace stationeers.modding.exporter
         private static bool _sanityFoldout = true;
         private static bool _aboutFoldout = true;
         private static bool _exportFoldout = true;
-        private static bool _utilitiesFoldout = true;
 
         // create toggles (only meaningful if missing)
         private static bool _createAbout = true;
@@ -65,6 +64,7 @@ namespace stationeers.modding.exporter
             _hasGameData = AssetDatabase.IsValidFolder("Assets/GameData");
 
             // Expensive calls: do them only here
+            // Replace with looking specifically for the one asmdef
             _hasAsmDef = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").Count > 0;
             _hasEntryScript = HasEntryPointScript();
 
@@ -166,7 +166,7 @@ namespace stationeers.modding.exporter
 
             // GameData folder - add a helper (see note below)
             if (!hasGameData && _createGameData)
-                AssetUtility.EnsureFolder("Assets", "GameData");
+                AssetUtility.CreateDefaultGameDataFolder();
 
             // asmdef
             if (!hasAsmDef && _createAsmDef)
@@ -221,6 +221,7 @@ namespace stationeers.modding.exporter
                     }
 
                     s.aboutAutoSyncBoth = EditorGUILayout.Toggle(new GUIContent("Auto-sync mod info"), s.aboutAutoSyncBoth);
+                    //hidding these settings on purpose.
                     //s.aboutAutoSyncPlayerToXml = EditorGUILayout.Toggle(new GUIContent("Auto-sync PlayerSettings → About.xml"), s.aboutAutoSyncPlayerToXml);
                     //s.aboutAutoSyncXmlToPlayer = EditorGUILayout.Toggle(new GUIContent("Auto-sync About.xml → PlayerSettings"), s.aboutAutoSyncXmlToPlayer);
 
@@ -304,35 +305,6 @@ namespace stationeers.modding.exporter
                         s.SaveNow();
 
                     EditorGUILayout.Space(6);
-                }
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-
-        private static void DrawUtilitiesSection()
-        {
-            _utilitiesFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_utilitiesFoldout, "Utilities");
-            if (_utilitiesFoldout)
-            {
-                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-                {
-                    EditorGUILayout.LabelField("Project setup", EditorStyles.boldLabel);
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        if (GUILayout.Button("Create Default Mod Setup"))
-                            AssetUtility.CreateDefaultSetup();
-                        if (GUILayout.Button("Create About.xml"))
-                            AssetUtility.CreateDefaultAbout();
-                        if (GUILayout.Button("Create Script"))
-                            AssetUtility.CreateDefaultScript();
-                        if (GUILayout.Button("Create .asmdef"))
-                            AsmDef.CreateDefaultAssembly();
-                    }
-
-                    EditorGUILayout.Space(6);
-                    EditorGUILayout.HelpBox(
-                        "These actions used to be in the Tools menu; they're now available here.",
-                        MessageType.None);
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
