@@ -176,6 +176,41 @@ namespace stationeers.modding.exporter
             importer.assetBundleVariant = variant;
         }
 
+        static List<string> SyncSceneAssetBundles(string bundleName)
+        {
+            // Scenes selected for build
+            var buildScenes = new HashSet<string>(
+                EditorBuildSettings.scenes
+                    .Where(s => s.enabled)
+                    .Select(s => s.path)
+                    .Where(p => !string.IsNullOrEmpty(p))
+            );
+
+            // All scenes currently assigned to this bundle
+            var assignedScenes = AssetDatabase.GetAssetPathsFromAssetBundle(bundleName)
+                .Where(p => p.EndsWith(".unity"))
+                .ToList();
+
+            // 1) Remove bundle from scenes no longer in build list
+            foreach (var path in assignedScenes)
+            {
+                if (!buildScenes.Contains(path))
+                {
+                    AssetImporter.GetAtPath(path).SetAssetBundleNameAndVariant(null, null);
+                    Debug.Log($"- Removed scene from bundle: {path}");
+                }
+            }
+
+            // 2) Assign bundle to current build scenes
+            foreach (var path in buildScenes)
+            {
+                SetAssetBundle(path, bundleName);
+            }
+
+            Debug.Log($"- Build scenes synced. Active: {buildScenes.Count}, Removed: {assignedScenes.Count - buildScenes.Count}");
+            return buildScenes.ToList();
+        }
+
         private static int ExportAssetBundles(BuildPlayerOptions options)
         {
             Debug.Log("Export AssetBundles");
@@ -184,10 +219,9 @@ namespace stationeers.modding.exporter
             assetPaths.ForEach(s => SetAssetBundle(s));
             Debug.Log($"- Total Asset count {assetPaths.Count}");
 
-            // Adding all scenes for now, maybe later we can use the scene build editor settings
-            List<string> scenePaths = AssetUtility.GetAssets("t:scene");
-            scenePaths.ForEach(s => SetAssetBundle(s, "scenes"));
-            Debug.Log($"- Total Scene count {scenePaths.Count}");
+            List<string> scenePaths = SyncSceneAssetBundles("scenes"); 
+            // Ensure path exists
+            scenePaths = scenePaths.Where(System.IO.File.Exists).ToList();
 
             // Forcing building platform as standalone windows for now.
             var platform = BuildTarget.StandaloneWindows.ToString();
