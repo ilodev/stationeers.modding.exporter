@@ -43,7 +43,7 @@ namespace stationeers.modding.exporter
         {
             CreateDefaultAbout();
             CreateDefaultScript();
-            AsmDef.CreateDefaultAssembly();
+            AssemblyDefinitionUtil.CreateDefaultAssembly();
         }
 
         /// <summary>

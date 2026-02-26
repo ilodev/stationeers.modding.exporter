@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace stationeers.modding.exporter
@@ -55,40 +56,85 @@ namespace stationeers.modding.exporter
 
         private static int ExportAssemblies(BuildPlayerOptions options, StationeersExportManifest manifest)
         {
-            List<string> _candidatesCache = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").ToList();
+            // Find all asmdef assets in the project (excluding Editor/Packages as defined by AssetUtility).
+            List<string> asmdefAssetPaths = AssetUtility.GetAssets("t:AssemblyDefinitionAsset");
 
-            Debug.Log($"Exporting {_candidatesCache.Count} Assemblies");
+            Debug.Log($"Exporting {asmdefAssetPaths.Count} assemblies");
 
-            foreach (var asmDefPath in _candidatesCache)
+            // Validate export folder early.
+            if (string.IsNullOrWhiteSpace(exportFolder))
+                throw new InvalidOperationException("exportFolder is null or empty.");
+
+            Directory.CreateDirectory(exportFolder);
+
+            // Library/ScriptAssemblies is where Unity writes compiled managed assemblies in the editor.
+            string scriptAssembliesDir = Path.Combine("Library", "ScriptAssemblies");
+
+            bool copyPdb = UnityEditor.WindowsStandalone.UserBuildSettings.copyPDBFiles;
+            const bool overwrite = true;
+
+            int processed = 0;
+
+            foreach (string asmdefAssetPath in asmdefAssetPaths)
             {
-                var json = File.ReadAllText(asmDefPath);
-                var asmDef = JsonUtility.FromJson<AsmDef>(json);
+                if (string.IsNullOrEmpty(asmdefAssetPath))
+                    continue;
 
-                var modAsmPath = Path.Combine("Library", "ScriptAssemblies", $"{asmDef.name}.dll");
-                bool overwrite = true;
-
-                if (File.Exists(modAsmPath))
+                try
                 {
-                    File.Copy(modAsmPath, Path.Combine(exportFolder, $"{asmDef.name}.dll"), overwrite);
-                    manifest.assembliesCopied.Add($"{asmDef.name}.dll");
-                }
-                else
-                {
-                    manifest.warnings.Add($"Missing DLL: {modAsmPath}");
-                }
-
-                if (UnityEditor.WindowsStandalone.UserBuildSettings.copyPDBFiles == true)
-                {
-                    var modPdbPath = Path.Combine("Library", "ScriptAssemblies", $"{asmDef.name}.pdb");
-                    if (File.Exists(modPdbPath))
+                    // Load the AssemblyDefinitionAsset to get the assembly name without parsing JSON manually.
+                    var asmdefAsset = AssetDatabase.LoadAssetAtPath<AssemblyDefinitionAsset>(asmdefAssetPath);
+                    if (asmdefAsset == null)
                     {
-                        File.Copy(modPdbPath, Path.Combine(exportFolder, $"{asmDef.name}.pdb"), overwrite);
-                        manifest.pdbsCopied.Add($"{asmDef.name}.pdb");
+                        manifest.warnings.Add($"Could not load asmdef asset: {asmdefAssetPath}");
+                        continue;
                     }
+
+                    string assemblyName = asmdefAsset.name;
+                    if (string.IsNullOrWhiteSpace(assemblyName))
+                    {
+                        manifest.warnings.Add($"Asmdef has no valid name: {asmdefAssetPath}");
+                        continue;
+                    }
+
+                    // Copy DLL
+                    string dllFileName = assemblyName + ".dll";
+                    string dllSourcePath = Path.Combine(scriptAssembliesDir, dllFileName);
+                    string dllDestPath = Path.Combine(exportFolder, dllFileName);
+
+                    if (File.Exists(dllSourcePath))
+                    {
+                        File.Copy(dllSourcePath, dllDestPath, overwrite);
+                        manifest.assembliesCopied.Add(dllFileName);
+                    }
+                    else
+                    {
+                        manifest.warnings.Add($"Missing DLL: {dllSourcePath} (asmdef: {asmdefAssetPath})");
+                    }
+
+                    // Copy PDB (optional)
+                    if (copyPdb)
+                    {
+                        string pdbFileName = assemblyName + ".pdb";
+                        string pdbSourcePath = Path.Combine(scriptAssembliesDir, pdbFileName);
+                        string pdbDestPath = Path.Combine(exportFolder, pdbFileName);
+
+                        if (File.Exists(pdbSourcePath))
+                        {
+                            File.Copy(pdbSourcePath, pdbDestPath, overwrite);
+                            manifest.pdbsCopied.Add(pdbFileName);
+                        }
+                    }
+
+                    processed++;
+                }
+                catch (Exception ex)
+                {
+                    manifest.warnings.Add($"Failed exporting asmdef '{asmdefAssetPath}': {ex.Message}");
                 }
             }
 
-            return _candidatesCache.Count;
+            return processed;
         }
 
         static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)

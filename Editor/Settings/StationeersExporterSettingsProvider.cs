@@ -170,7 +170,7 @@ namespace stationeers.modding.exporter
 
             // asmdef
             if (!hasAsmDef && _createAsmDef)
-                AsmDef.CreateDefaultAssembly();
+                AssemblyDefinitionUtil.CreateDefaultAssembly();
 
             // entry script
             if (!hasEntryScript && _createEntryScript)
