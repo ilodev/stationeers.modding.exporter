@@ -258,28 +258,21 @@ namespace stationeers.modding.exporter
             }
         }
 
-        /// <summary>
-        /// Create an asset for a ScriptableObject in a Resources directory.
-        /// </summary>
-        /// <param name="scriptableObject">A ScriptableObject instance.</param>
-        public static void CreateAsset(ScriptableObject scriptableObject)
+        public static void EnsureFolder(string parent, string name)
         {
-            var resourcesParentDirectory = "Assets";
-            
-            var resourcesDirectory = "";
+            var combined = Path.Combine(parent, name).Replace('\\', '/');
+            if (AssetDatabase.IsValidFolder(combined))
+                return;
 
-            resourcesDirectory = Directory
-                .GetDirectories(resourcesParentDirectory, "Resources", SearchOption.AllDirectories).FirstOrDefault();
-
-            if (string.IsNullOrEmpty(resourcesDirectory))
-            {
-                resourcesDirectory = Path.Combine(resourcesParentDirectory, "Resources");
-                Directory.CreateDirectory(resourcesDirectory);
-            }
-
-            var path = Path.Combine(resourcesDirectory, scriptableObject.GetType().Name + ".asset");
-            Debug.Log($"Creating asset at {path}");
-            AssetDatabase.CreateAsset(scriptableObject, path);
+            var guid = AssetDatabase.CreateFolder(parent, name);
+            AssetDatabase.GUIDToAssetPath(guid);
         }
+
+        public static void CreateDefaultGameDataFolder()
+        {
+            EnsureFolder("Assets", "GameData");
+        }
+
+
     }
 }

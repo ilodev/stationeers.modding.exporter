@@ -5,17 +5,22 @@ using UnityEngine;
 
 namespace stationeers.modding.exporter
 {
-    /// <summary>
-    /// Project Settings UI for the package.
-    /// Splits configuration into:
-    /// - Project settings (shared): StationeersExporterSettings (export folders, About.xml sync)
-    /// - User prefs (local): StationeersExporterUserPrefs (runner enable + executable location)
-    /// </summary>
     public static class StationeersExporterSettingsProvider
     {
+        private static bool _sanityFoldout = true;
         private static bool _aboutFoldout = true;
         private static bool _exportFoldout = true;
         private static bool _utilitiesFoldout = true;
+
+        // create toggles (only meaningful if missing)
+        private static bool _createAbout = true;
+        private static bool _createGameData = true;
+        private static bool _createAsmDef = true;
+        private static bool _createEntryScript = true;
+
+        // Mod sanity
+        private static bool _sanityCached;
+        private static bool _hasAboutFolder, _hasAboutXml, _hasGameData, _hasAsmDef, _hasEntryScript;
 
         [SettingsProvider]
         public static SettingsProvider CreateProvider()
@@ -28,15 +33,174 @@ namespace stationeers.modding.exporter
                     EditorGUILayout.LabelField("Stationeers Modding Exporter", EditorStyles.boldLabel);
                     EditorGUILayout.Space(6);
 
+                    DrawSanitySection();
+                    EditorGUILayout.Space(8);
+
                     DrawExportSection();
                     EditorGUILayout.Space(8);
+
                     DrawAboutSection();
+
 
                     // Disabled temporarily
                     //EditorGUILayout.Space(8);
                     //DrawUtilitiesSection();
                 }
             };
+        }
+
+        [InitializeOnLoadMethod]
+        private static void HookProjectChange()
+        {
+            EditorApplication.projectChanged += () =>
+            {
+                _sanityCached = false; // mark dirty; refresh next draw
+            };
+        }
+
+        private static void RefreshSanityCache()
+        {
+            _hasAboutFolder = AssetDatabase.IsValidFolder("Assets/About");
+            _hasAboutXml = File.Exists("Assets/About/About.xml") || File.Exists("Assets/About/about.xml");
+            _hasGameData = AssetDatabase.IsValidFolder("Assets/GameData");
+
+            // Expensive calls: do them only here
+            _hasAsmDef = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").Count > 0;
+            _hasEntryScript = HasEntryPointScript();
+
+            _sanityCached = true;
+        }
+
+        private static void DrawSanitySection()
+        {
+            int missing =
+                (_hasAboutFolder ? 0 : 1) +
+                (_hasAboutXml ? 0 : 1) +
+                (_hasGameData ? 0 : 1) +
+                (_hasAsmDef ? 0 : 1) +
+                (_hasEntryScript ? 0 : 1);
+            if (missing > 0)
+                _sanityFoldout = true;
+            else
+                _sanityFoldout = false;
+
+            _sanityFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_sanityFoldout, $"Mod sanity check passed: {!_sanityFoldout}");
+            if (_sanityFoldout)
+            {
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    /*
+                    // --- checks ---
+                    bool hasAboutFolder = AssetDatabase.IsValidFolder("Assets/About");
+                    bool hasAboutXml = File.Exists("Assets/About/About.xml") || File.Exists("Assets/About/about.xml");
+                    bool hasGameData = AssetDatabase.IsValidFolder("Assets/GameData");
+                    bool hasAsmDef = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").Count > 0;
+                    bool hasEntryScript = HasEntryPointScript();
+                    */
+                    // Summary
+                    if (missing == 0)
+                        EditorGUILayout.HelpBox("All required mod items are present.", MessageType.Info);
+                    else
+                        EditorGUILayout.HelpBox($"{missing} required item(s) are missing. Select what to create and click 'Create Selected'.", MessageType.Warning);
+
+                    EditorGUILayout.Space(6);
+
+                    // Rows
+                    DrawSanityRow("Assets/About folder", _hasAboutFolder, ref _createAbout);
+                    DrawSanityRow("Assets/About/About.xml", _hasAboutXml, ref _createAbout);
+                    DrawSanityRow("Assets/GameData folder", _hasGameData, ref _createGameData);
+                    DrawSanityRow("Assembly Definition (.asmdef)", _hasAsmDef, ref _createAsmDef);
+                    DrawSanityRow("Entry point script", _hasEntryScript, ref _createEntryScript);
+
+                    EditorGUILayout.Space(8);
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        using (new EditorGUI.DisabledScope(missing == 0))
+                        {
+                            if (GUILayout.Button("Create Selected"))
+                            {
+                                CreateSelected(_hasAboutFolder, _hasAboutXml, _hasGameData, _hasAsmDef, _hasEntryScript);
+                            }
+                        }
+                    }
+                }
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+
+        private static void DrawSanityRow(string label, bool present, ref bool createToggle)
+        {
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (!_sanityCached)
+                    RefreshSanityCache();
+
+                if (GUILayout.Button("Refresh"))
+                {
+                    RefreshSanityCache();
+                    // also update the default toggle selections if you do that
+                }
+
+                EditorGUILayout.LabelField(label);
+
+                if (!present)
+                {
+                    createToggle = EditorGUILayout.ToggleLeft("Create", createToggle, GUILayout.Width(70));
+                }
+                else
+                {
+                    using (new EditorGUI.DisabledScope(true))
+                        EditorGUILayout.ToggleLeft("Create", false, GUILayout.Width(70));
+                }
+            }
+            EditorGUILayout.Space(2);
+        }
+
+        private static void CreateSelected(bool hasAboutFolder, bool hasAboutXml, bool hasGameData, bool hasAsmDef, bool hasEntryScript)
+        {
+            // About
+            if ((!hasAboutFolder || !hasAboutXml) && _createAbout)
+                AssetUtility.CreateDefaultAbout();
+
+            // GameData folder - add a helper (see note below)
+            if (!hasGameData && _createGameData)
+                AssetUtility.EnsureFolder("Assets", "GameData");
+
+            // asmdef
+            if (!hasAsmDef && _createAsmDef)
+                AsmDef.CreateDefaultAssembly();
+
+            // entry script
+            if (!hasEntryScript && _createEntryScript)
+                AssetUtility.CreateDefaultScript();
+
+            AssetDatabase.Refresh();
+            Debug.Log("Sanity check: create selected completed.");
+        }
+
+        private static bool HasEntryPointScript()
+        {
+            string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName);
+            string expected = $"Assets/Scripts/{productName}.cs";
+
+            if (File.Exists(expected))
+                return true;
+
+            // fallback: any script in Assets/Scripts with same file name
+            if (AssetDatabase.IsValidFolder("Assets/Scripts"))
+            {
+                var guids = AssetDatabase.FindAssets("t:MonoScript", new[] { "Assets/Scripts" });
+                foreach (var guid in guids)
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (Path.GetFileNameWithoutExtension(path).Equals(productName, System.StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private static void DrawAboutSection()
