@@ -4,16 +4,16 @@ All notable changes to this package will be documented in this file. The format 
 
 ## [1.0.3] - 2026-02-26
 
-### Improved exporter
 
+### Added
 Saving build summary as export manifest in Library.
 Added autoincrement option for the bundleVersion in the export process.
 Added sanity validation in project settings.
 
 ## [1.0.2] - 2026-02-26
 
-### Improved exporter
 
+### Added
 Removed temporary Tool menu entries.
 Fixed a bug when exporting non-serializable assets (e.g. shaders, text files) always marked as dirty.
 Moved customization for export folder and autorun of the game as user preferences.
@@ -22,8 +22,8 @@ General code clean up
 
 ## [1.0.1] - 2025-10-08
 
-### Improved exporter
 
+### Added
 Removed stationeersMods dependency.
 Prompt user to save before building/exporting.
 Moved towards an process agnostic incremental exporter.
@@ -37,8 +37,8 @@ Bumped version.
 
 ## [1.0.0] - 2025-10-08
 
-### Added
 
+### Added
 First release, including:
   - Stationeers required Assemblies from version: 0.2.5919.26060 23/09/2025
   - BepInEx version: 5.4.23.2

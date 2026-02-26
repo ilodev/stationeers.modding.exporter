@@ -155,8 +155,6 @@ namespace stationeers.modding.exporter
                     if (GUILayout.Button("Run Stationeers"))
                         StationeersRunner.RunStationeers();
 
-                    //EditorGUILayout.Space(6);
-                    //EditorGUILayout.HelpBox("These preferences are per-user/per-machine (not saved in the project).", MessageType.Info);
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
