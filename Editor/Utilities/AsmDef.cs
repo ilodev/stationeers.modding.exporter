@@ -32,7 +32,7 @@ namespace stationeers.modding.exporter
                 productName,
                 productName,
                 new List<string> { "Unity.TextMeshPro"},
-                new List<string> { "Assembly-CSharp.dll", "Assembly-CSharp-firstpass.dll", "BepInEx.dll", "0Harmony.dll", "RW.RocketNet.dll", "LaunchPadBooster.dll" }, 
+                new List<string> { "Assembly-CSharp.dll", "Assembly-CSharp-firstpass.dll", "BepInEx.dll", "0Harmony.dll", "Brutal.Raknet.dll", "LaunchPadBooster.dll", "UniTask.dll" }, 
                 new List<string> { }
             );
         }
