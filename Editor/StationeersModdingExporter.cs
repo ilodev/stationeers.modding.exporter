@@ -1,4 +1,3 @@
-using stationeers.modding.exporter.stationeers.modding.exporter;
 using System;
 using System.Collections.Generic;
 using System.IO;
