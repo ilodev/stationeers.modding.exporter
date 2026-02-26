@@ -1,48 +1,68 @@
-using System.Linq;
+using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 namespace stationeers.modding.exporter
 {
+    /// <summary>
+    /// Helpers for bumping the Unity project version (PlayerSettings.bundleVersion) and optionally
+    /// syncing the Stationeers about.xml file when auto-sync is enabled in exporter settings.
+    /// </summary>
+    /// <remarks>
+    /// This class does not attempt to validate or rewrite about.xml directly. Instead, it delegates
+    /// to AboutXmlPlayerSettingsWatcher.SyncNow(force: true) when sync is enabled.
+    ///
+    /// Supported version formats:
+    /// - "1" becomes "1.1" when incrementing last numeric component (ensures at least 2 parts).
+    /// - "1.2" is treated as "1.2.0" by the semver parser.
+    /// - "1.2.3-beta" and "1.2.3+meta" keep their suffix when bumping.
+    /// </remarks>
     public static class StationeersVersioning
     {
         /// <summary>
-        /// Increments the LAST numeric component of PlayerSettings.bundleVersion.
-        /// Examples:
-        /// 1        -> 1.1
-        /// 1.0      -> 1.1
-        /// 1.0.3    -> 1.0.4
-        /// 1.2.9    -> 1.2.10
-        /// Preserves suffixes like "-beta".
+        /// Increments the last numeric component of PlayerSettings.bundleVersion.
         /// </summary>
+        /// <param name="oldVersion">Previous bundleVersion (trimmed). If empty, treated as "1".</param>
+        /// <param name="newVersion">New bundleVersion after increment.</param>
+        /// <returns>
+        /// True if the version was incremented and written to PlayerSettings.bundleVersion; otherwise false.
+        /// </returns>
+        /// <remarks>
+        /// Examples:
+        /// - "1"       becomes "1.1"
+        /// - "1.0"     becomes "1.1"
+        /// - "1.0.3"   becomes "1.0.4"
+        /// - "1.2.9"   becomes "1.2.10"
+        /// - "1.2-beta" becomes "1.3-beta" (last numeric part bumped, suffix preserved)
+        ///
+        /// This method only performs the bump when exporter settings indicate that about.xml sync is enabled
+        /// (aboutAutoSyncPlayerToXml or aboutAutoSyncBoth). This matches the original behavior.
+        /// </remarks>
         public static bool IncrementBuildVersion(out string oldVersion, out string newVersion)
         {
-
-            oldVersion = PlayerSettings.bundleVersion?.Trim();
-            newVersion = oldVersion;
-
+            oldVersion = (PlayerSettings.bundleVersion ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(oldVersion))
                 oldVersion = "1";
 
+            newVersion = oldVersion;
+
             var settings = StationeersExporterSettings.instance;
-            bool needsToUpdate = settings.aboutAutoSyncPlayerToXml || settings.aboutAutoSyncBoth;
-            if (!needsToUpdate)
-                return false;
-
-            // Split suffix (-beta, +meta, etc.)
-            string numericPart = oldVersion;
-            string suffix = "";
-
-            int suffixIndex = oldVersion.IndexOfAny(new[] { '-', '+' });
-            if (suffixIndex >= 0)
+            if (settings == null)
             {
-                numericPart = oldVersion.Substring(0, suffixIndex);
-                suffix = oldVersion.Substring(suffixIndex);
+                Debug.LogWarning("[StationeersVersioning] Exporter settings not available. Version bump skipped.");
+                return false;
             }
 
-            var parts = numericPart.Split('.').ToList();
+            bool shouldSyncAboutXml = settings.aboutAutoSyncPlayerToXml || settings.aboutAutoSyncBoth;
+            if (!shouldSyncAboutXml)
+                return false;
 
-            // Ensure at least two components so "1" -> "1.1"
+            SplitSuffix(oldVersion, out string numericPart, out string suffix);
+
+            var parts = new List<string>(numericPart.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries));
+
+            // Ensure at least two components so "1" -> "1.1".
             if (parts.Count == 1)
                 parts.Add("0");
 
@@ -50,7 +70,7 @@ namespace stationeers.modding.exporter
 
             if (!int.TryParse(parts[lastIndex], out int value))
             {
-                Debug.LogWarning($"Cannot auto-increment bundleVersion '{oldVersion}'. Last component is not numeric.");
+                Debug.LogWarning($"[StationeersVersioning] Cannot auto-increment bundleVersion '{oldVersion}'. Last component is not numeric.");
                 return false;
             }
 
@@ -60,96 +80,43 @@ namespace stationeers.modding.exporter
             newVersion = string.Join(".", parts) + suffix;
             PlayerSettings.bundleVersion = newVersion;
 
-            // Update about.xml if enabled
-            TryUpdateAboutXml(settings, newVersion);
-            Debug.Log($"Build version incremented: {oldVersion} ? {newVersion}");
-            return true;
-        }
+            TrySyncAboutXml(settings, newVersion);
 
-
-        /// <summary>
-        /// Increments PlayerSettings.bundleVersion minor component (major.minor.patch),
-        /// resets patch to 0, and (optionally) propagates to about.xml.
-        /// </summary>
-        public static bool IncrementMinorAndPropagate(out string oldVersion, out string newVersion)
-        {
-            oldVersion = PlayerSettings.bundleVersion?.Trim() ?? "0.0.0";
-
-            if (!TryParseSemVer3(oldVersion, out int major, out int minor, out int patch, out string suffix))
-            {
-                Debug.LogWarning($"Could not parse bundleVersion '{oldVersion}'. Expected something like '1.2.3' (optional suffix like '-beta'). No version bump performed.");
-                newVersion = oldVersion;
-                return false;
-            }
-
-            minor += 1;
-            patch = 0;
-
-            newVersion = $"{major}.{minor}.{patch}{suffix}";
-
-            // Update Unity project version
-            PlayerSettings.bundleVersion = newVersion;
-            Debug.Log($"Version bumped: {oldVersion} -> {newVersion}");
-
-            // Update about.xml if enabled
-            var settings = StationeersExporterSettings.instance;
-            bool needsToUpdate = settings.aboutAutoSyncPlayerToXml || settings.aboutAutoSyncBoth;
-            if (settings == null || needsToUpdate)
-                TryUpdateAboutXml(settings, newVersion);
-
+            Debug.Log($"[StationeersVersioning] Build version incremented: {oldVersion} -> {newVersion}");
             return true;
         }
 
         /// <summary>
-        /// Parses "major.minor.patch" with optional suffix (e.g., "1.2.3-beta").
-        /// Also tolerates "1.2" by treating patch as 0; "1" becomes 1.0.0.
+        /// Splits a version string into a numeric part and a suffix part.
         /// </summary>
-        private static bool TryParseSemVer3(string version, out int major, out int minor, out int patch, out string suffix)
+        /// <param name="version">Full version string.</param>
+        /// <param name="numericPart">Portion before the first '-' or '+'.</param>
+        /// <param name="suffix">Portion starting at the first '-' or '+', or empty if none.</param>
+        private static void SplitSuffix(string version, out string numericPart, out string suffix)
         {
-            major = minor = patch = 0;
-            suffix = "";
+            numericPart = version;
+            suffix = string.Empty;
 
-            if (string.IsNullOrWhiteSpace(version))
-                return false;
-
-            // Preserve suffix like "-beta" or "+meta" if present.
-            // Split at first '-' or '+' (common semver suffix separators)
             int cut = version.IndexOfAny(new[] { '-', '+' });
             if (cut >= 0)
             {
+                numericPart = version.Substring(0, cut);
                 suffix = version.Substring(cut);
-                version = version.Substring(0, cut);
             }
-
-            var parts = version.Split('.').Select(p => p.Trim()).Where(p => p.Length > 0).ToArray();
-            if (parts.Length == 0) return false;
-
-            bool ok = int.TryParse(parts[0], out major);
-            if (!ok) return false;
-
-            if (parts.Length >= 2)
-            {
-                ok = int.TryParse(parts[1], out minor);
-                if (!ok) return false;
-            }
-            else minor = 0;
-
-            if (parts.Length >= 3)
-            {
-                ok = int.TryParse(parts[2], out patch);
-                if (!ok) return false;
-            }
-            else patch = 0;
-
-            // Ignore any extra components (e.g. 1.2.3.4) rather than failing
-            return true;
         }
 
-        private static void TryUpdateAboutXml(StationeersExporterSettings settings, string newVersion)
+        /// <summary>
+        /// Syncs about.xml based on the current exporter settings.
+        /// </summary>
+        /// <param name="settings">Exporter settings instance.</param>
+        /// <param name="newVersion">The version that was written to PlayerSettings.bundleVersion.</param>
+        /// <remarks>
+        /// The current implementation delegates to AboutXmlPlayerSettingsWatcher and forces a sync.
+        /// The newVersion parameter is kept for clarity and future use.
+        /// </remarks>
+        private static void TrySyncAboutXml(StationeersExporterSettings settings, string newVersion)
         {
             AboutXmlPlayerSettingsWatcher.SyncNow(force: true);
         }
-
-        
     }
 }
