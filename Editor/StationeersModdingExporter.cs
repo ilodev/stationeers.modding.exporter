@@ -1,3 +1,4 @@
+using stationeers.modding.exporter.stationeers.modding.exporter;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +13,6 @@ namespace stationeers.modding.exporter
     public static class StationeersModdingExport
     {
         public static string exportFolder;
-        public static string tempFolder;
 
         public static string Sanitize(string part)
         {
@@ -54,43 +54,43 @@ namespace stationeers.modding.exporter
                 Directory.CreateDirectory(folder);
         }
 
-        private static int ExportAssemblies(BuildPlayerOptions options)
+        private static int ExportAssemblies(BuildPlayerOptions options, StationeersExportManifest manifest)
         {
-            // Candidates list already excludes package and editor asmdef files.
             List<string> _candidatesCache = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").ToList();
 
             Debug.Log($"Exporting {_candidatesCache.Count} Assemblies");
 
             foreach (var asmDefPath in _candidatesCache)
             {
-                Debug.Log($"Exporting Assembly {asmDefPath}");
-
                 var json = File.ReadAllText(asmDefPath);
                 var asmDef = JsonUtility.FromJson<AsmDef>(json);
 
                 var modAsmPath = Path.Combine("Library", "ScriptAssemblies", $"{asmDef.name}.dll");
-
-                // When copying dlls/pdb, always overwrite the previous version.
                 bool overwrite = true;
 
                 if (File.Exists(modAsmPath))
                 {
-                    Debug.Log($" + Copying {modAsmPath}");
-                    File.Copy(modAsmPath, Path.Combine(tempFolder, $"{asmDef.name}.dll"), overwrite);
+                    File.Copy(modAsmPath, Path.Combine(exportFolder, $"{asmDef.name}.dll"), overwrite);
+                    manifest.assembliesCopied.Add($"{asmDef.name}.dll");
+                }
+                else
+                {
+                    manifest.warnings.Add($"Missing DLL: {modAsmPath}");
                 }
 
                 if (UnityEditor.WindowsStandalone.UserBuildSettings.copyPDBFiles == true)
                 {
                     var modPdbPath = Path.Combine("Library", "ScriptAssemblies", $"{asmDef.name}.pdb");
-                    Debug.Log($" + Copying {modPdbPath}");
                     if (File.Exists(modPdbPath))
-                        File.Copy(modPdbPath, Path.Combine(tempFolder, $"{asmDef.name}.pdb"), overwrite);
+                    {
+                        File.Copy(modPdbPath, Path.Combine(exportFolder, $"{asmDef.name}.pdb"), overwrite);
+                        manifest.pdbsCopied.Add($"{asmDef.name}.pdb");
+                    }
                 }
             }
 
             return _candidatesCache.Count;
         }
-
 
         static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
         {
@@ -132,11 +132,9 @@ namespace stationeers.modding.exporter
         /// Export additional folders from Assets/
         /// </summary>
         /// <param name="options"></param>
-        private static int ExportAssets(BuildPlayerOptions options)
+        private static int ExportAssets(BuildPlayerOptions options, StationeersExportManifest manifest)
         {
             int exportedFolders = 0;
-
-            Debug.Log("Exporting assets...");
 
             var settings = StationeersExporterSettings.instance;
             var folders = (settings != null && settings.exportFolders != null)
@@ -148,29 +146,24 @@ namespace stationeers.modding.exporter
                 if (string.IsNullOrEmpty(folder))
                     continue;
 
-                // Only support Assets/* folders
                 var normalized = folder.Replace('\\', '/');
                 if (!normalized.StartsWith("Assets/"))
                 {
-                    Debug.LogWarning($"Skipping export folder (must be under Assets/): {folder}");
+                    manifest.warnings.Add($"Skipping export folder (must be under Assets/): {folder}");
                     continue;
                 }
 
-                var abs = Path.GetFullPath(normalized);
-                if (!Directory.Exists(abs))
+                if (!Directory.Exists(normalized))
                 {
-                    // Also try relative to project root to avoid Path.GetFullPath quirks
-                    if (!Directory.Exists(normalized))
-                    {
-                        Debug.LogWarning($"Export folder not found: {folder}");
-                        continue;
-                    }
+                    manifest.warnings.Add($"Export folder not found: {folder}");
+                    continue;
                 }
 
-                // Preserve relative structure under Assets/
                 var relUnderAssets = normalized.Substring("Assets/".Length);
-                var dest = Path.Combine(tempFolder, relUnderAssets);
+                var dest = Path.Combine(exportFolder, relUnderAssets);
                 CopyDirectory(normalized, dest, true);
+
+                manifest.foldersCopied.Add(normalized);
                 exportedFolders++;
             }
 
@@ -234,27 +227,34 @@ namespace stationeers.modding.exporter
             return buildScenes.ToList();
         }
 
-        private static int ExportAssetBundles(BuildPlayerOptions options)
+        private static int ExportAssetBundles(BuildPlayerOptions options, StationeersExportManifest manifest)
         {
             Debug.Log("Export AssetBundles");
 
             List<string> assetPaths = AssetUtility.GetAssets("t:prefab t:scriptableobject");
             assetPaths.ForEach(s => SetAssetBundle(s));
-            Debug.Log($"- Total Asset count {assetPaths.Count}");
+            manifest.assetPathsBundled.AddRange(assetPaths);
 
-            List<string> scenePaths = SyncSceneAssetBundles("scenes"); 
-            // Ensure path exists
+            List<string> scenePaths = SyncSceneAssetBundles("scenes");
             scenePaths = scenePaths.Where(System.IO.File.Exists).ToList();
+            manifest.scenePathsBundled.AddRange(scenePaths);
 
-
-            // Forcing building platform as standalone windows for now.
             var platform = BuildTarget.StandaloneWindows.ToString();
-            var subDir = Path.Combine(tempFolder, platform);
+            var subDir = Path.Combine(exportFolder, platform);
             Directory.CreateDirectory(subDir);
-            Debug.Log($"Exporting assets for {platform} to: {subDir}");
             BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
 
             return assetPaths.Count;
+        }
+
+        private static bool CleanBuildCacheIsSet(BuildPlayerOptions options)
+        {
+            return (options.options & BuildOptions.CleanBuildCache) != 0;
+        }
+
+        private static bool BuildScriptsOnlyIsSet(BuildPlayerOptions options)
+        {
+            return (options.options & BuildOptions.BuildScriptsOnly) != 0;
         }
 
         /// <summary>
@@ -264,28 +264,45 @@ namespace stationeers.modding.exporter
         public static void Export(BuildPlayerOptions options)
         {
             Debug.Log("Export started");
-            int assemblies = 0;
+
+            exportFolder = options.locationPathName;
+
+            var manifest = new StationeersExportManifest
+            {
+                unityVersion = Application.unityVersion,
+                productName = PlayerSettings.productName,
+                exportFolder = exportFolder,
+                buildTarget = options.target.ToString(),
+                buildOptions = options.options.ToString(),
+                utcTimestamp = DateTime.UtcNow.ToString("o")
+            };
+
+            if (CleanBuildCacheIsSet(options))
+                DeleteOutputFolder(exportFolder);
+
+            CreateOutputFolder(exportFolder);
+
+            int assemblies = ExportAssemblies(options, manifest);
+
             int assets = 0;
             int folderAssets = 0;
+            if (!BuildScriptsOnlyIsSet(options))
+            {
+                folderAssets = ExportAssets(options, manifest);
+                assets = ExportAssetBundles(options, manifest);
+            }
 
-            tempFolder = options.locationPathName;
-            Debug.Log("********** Export folder" + tempFolder);
+            manifest.assembliesCount = assemblies;
+            manifest.assetsCount = assets;
+            manifest.folderCount = folderAssets;
+            manifest.scenesCount = manifest.scenePathsBundled.Count;
 
-            if ((options.options & BuildOptions.CleanBuildCache) != 0)
-                DeleteOutputFolder(tempFolder);
+            StationeersExportManifestStore.Save(manifest);
 
-            CreateOutputFolder(tempFolder);
-
-            assemblies = ExportAssemblies(options);
-
-            if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
-                folderAssets = ExportAssets(options);
-
-            // TODO: Consider cleaning up the bundles first.
-            if ((options.options & BuildOptions.BuildScriptsOnly) == 0)
-                assets = ExportAssetBundles(options);
-
-            Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders.");
+            var path = Path.GetFullPath(StationeersExportManifestStore.ManifestPath)
+               .Replace('\\', '/'); // important for Windows
+            var uri = new Uri(path); // automatically file:/// and escaped
+            Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders. See  <a href=\"{uri.AbsoluteUri}\">Report</a>");
         }
     }
 }
