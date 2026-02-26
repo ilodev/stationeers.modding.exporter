@@ -11,7 +11,7 @@ If not found, it’ll prompt the user to pick rocketstation.exe once and remember 
 */
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic; 
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -21,7 +21,7 @@ namespace stationeers.modding.exporter
 {
     public static class StationeersRunner
     {
-        private const string AppId = "544550"; // Stationeers (Steam) — steamdb confirms
+        private const string AppId = "544550"; // Stationeers (Steam appId)
         private const string ExeName = "rocketstation.exe";
         private const string PrefExeOverride = "StationeersRunner.ExeOverride";
         private const string PrefEnabledKey = "StationeersRunner_Enabled";

@@ -8,6 +8,7 @@ namespace stationeers.modding.exporter
     {
         private static bool _exportFoldout = true;
         private const string ExportFolderKey = "StationeersExport_Folder";
+        private const string AutoIncrementBuildKey = "StationeersExport_AutoIncrementBuild";
 
         private static bool _runnerFoldout = true;
 
@@ -36,7 +37,7 @@ namespace stationeers.modding.exporter
 
         private static void DrawExportFolderPrefs()
         {
-            _exportFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_exportFoldout, "Export Location");
+            _exportFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_exportFoldout, "Export Options");
             if (_exportFoldout)
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
@@ -96,6 +97,21 @@ namespace stationeers.modding.exporter
                         EditorGUILayout.HelpBox("This folder does not exist (or is not accessible). Pick another folder or create it.", MessageType.Warning);
                     else
                         EditorGUILayout.HelpBox("Export folder is set and will be used as the default destination when exporting any mod.", MessageType.None);
+
+
+                    EditorGUILayout.Space(6);
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        bool autoIncrementBuild = StationeersExporterUserPreferences.AutoIncrementBuild;
+
+                        EditorGUI.BeginChangeCheck();
+                        autoIncrementBuild = EditorGUILayout.Toggle("Auto-increment Build", autoIncrementBuild);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            StationeersExporterUserPreferences.AutoIncrementBuild = autoIncrementBuild;
+                        }
+                    }
+
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();

@@ -301,6 +301,10 @@ namespace stationeers.modding.exporter
             var path = Path.GetFullPath(StationeersExportManifestStore.ManifestPath)
                .Replace('\\', '/'); // important for Windows
             var uri = new Uri(path); // automatically file:/// and escaped
+
+            if (StationeersExporterUserPreferences.AutoIncrementBuild)
+                StationeersVersioning.IncrementBuildVersion(out var oldVersion, out var newVersion);
+            
             Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders. See  <a href=\"{uri.AbsoluteUri}\">Report</a>");
         }
     }

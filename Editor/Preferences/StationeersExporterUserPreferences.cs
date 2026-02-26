@@ -31,7 +31,13 @@ namespace stationeers.modding.exporter
             set => EditorPrefs.SetString(RunnerExeOverrideKey, value ?? string.Empty);
         }
 
-
         public static void ClearRunnerExeOverride() => EditorPrefs.DeleteKey(RunnerExeOverrideKey);
+
+        private const string autoIncrementBuildVersionKey = "StationeersExport_AutoIncrementBuild";
+        public static bool AutoIncrementBuild
+        {
+            get => EditorPrefs.GetBool(autoIncrementBuildVersionKey, false);
+            set => EditorPrefs.SetBool(autoIncrementBuildVersionKey, value);
+        }
     }
 }
