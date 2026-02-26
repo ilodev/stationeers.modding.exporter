@@ -273,7 +273,8 @@ namespace stationeers.modding.exporter
                 exportFolder = exportFolder,
                 buildTarget = options.target.ToString(),
                 buildOptions = options.options.ToString(),
-                utcTimestamp = DateTime.UtcNow.ToString("o")
+                utcTimestamp = DateTime.UtcNow.ToString("o"),
+                bundleVersion = PlayerSettings.bundleVersion
             };
 
             if (CleanBuildCacheIsSet(options))

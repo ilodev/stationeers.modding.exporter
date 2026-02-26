@@ -16,6 +16,7 @@ namespace stationeers.modding.exporter
             public string exportFolder;
             public string buildTarget;
             public string buildOptions;
+            public string bundleVersion;
             public string utcTimestamp;
 
             public List<string> assembliesCopied = new();
