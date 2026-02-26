@@ -16,7 +16,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
-using UnityEngine;
 
 namespace stationeers.modding.exporter
 {

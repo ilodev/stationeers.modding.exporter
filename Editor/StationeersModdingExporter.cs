@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace stationeers.modding.exporter
 {
