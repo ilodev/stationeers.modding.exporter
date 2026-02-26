@@ -10,8 +10,6 @@ namespace stationeers.modding.exporter
     [InitializeOnLoad]
     public static class BuildButtonOverrides
     {
-        //TODO: Probably move all keys to a single class
-        private const string ExportFolderKey = "StationeersExport_Folder";
 
         static BuildButtonOverrides()
         {
@@ -29,7 +27,8 @@ namespace stationeers.modding.exporter
         private static BuildPlayerOptions GetBuildPlayerOptions(BuildPlayerOptions options)
         {
 
-            string exportFolder = EditorPrefs.GetString(ExportFolderKey, string.Empty);
+            
+            string exportFolder = StationeersExporterUserPreferences.ExportFolder;
 
             if (string.IsNullOrEmpty(exportFolder) || !Directory.Exists(exportFolder))
             {
@@ -44,7 +43,7 @@ namespace stationeers.modding.exporter
                 }
 
                 exportFolder = picked;
-                EditorPrefs.SetString(ExportFolderKey, exportFolder);
+                StationeersExporterUserPreferences.ExportFolder = exportFolder;
             }
 
             // IMPORTANT: locationPathName is usually a full *file* path for the built player (e.g. .../MyGame.exe)

@@ -31,7 +31,6 @@ namespace stationeers.modding.exporter
         /// </summary>
         /// <remarks>
         /// This is intended to be called by other tooling (e.g., after exporting/mod building).
-        /// If the preference <c>StationeersRunner_Enabled</c> is false or missing, this method does nothing.
         /// </remarks>
         public static void TryRunStationeers()
         {            

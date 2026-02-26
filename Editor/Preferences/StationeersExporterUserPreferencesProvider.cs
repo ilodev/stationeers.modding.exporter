@@ -7,12 +7,7 @@ namespace stationeers.modding.exporter
     public static class StationeersExporterUserPreferencesProvider
     {
         private static bool _exportFoldout = true;
-        private const string ExportFolderKey = "StationeersExport_Folder";
-        private const string AutoIncrementBuildKey = "StationeersExport_AutoIncrementBuild";
-
         private static bool _runnerFoldout = true;
-
-
 
         [SettingsProvider]
         public static SettingsProvider CreateProvider()
@@ -32,8 +27,8 @@ namespace stationeers.modding.exporter
         }
 
         // Optional helper you can call from your build/export code later:
-        public static string GetExportFolderOrEmpty()
-            => EditorPrefs.GetString(ExportFolderKey, string.Empty);
+        public static string GetExportFolderOrEmpty() =>
+            StationeersExporterUserPreferences.ExportFolder;
 
         private static void DrawExportFolderPrefs()
         {
@@ -42,7 +37,7 @@ namespace stationeers.modding.exporter
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    string exportFolder = EditorPrefs.GetString(ExportFolderKey, string.Empty);
+                    string exportFolder = StationeersExporterUserPreferences.ExportFolder;
 
                     EditorGUILayout.LabelField("Mods Export Folder", EditorStyles.boldLabel);
                     EditorGUILayout.LabelField("Used as the default export destination if set.", EditorStyles.miniLabel);
@@ -55,7 +50,7 @@ namespace stationeers.modding.exporter
                         exportFolder = EditorGUILayout.TextField(exportFolder);
                         if (EditorGUI.EndChangeCheck())
                         {
-                            EditorPrefs.SetString(ExportFolderKey, exportFolder?.Trim() ?? string.Empty);
+                            StationeersExporterUserPreferences.ExportFolder = exportFolder?.Trim() ?? string.Empty;
                         }
 
                         if (GUILayout.Button("Browse…", GUILayout.Width(80)))
@@ -65,7 +60,7 @@ namespace stationeers.modding.exporter
                             string picked = EditorUtility.OpenFolderPanel("Select Mods Export Folder", start ?? "", "");
                             if (!string.IsNullOrEmpty(picked))
                             {
-                                EditorPrefs.SetString(ExportFolderKey, picked);
+                                StationeersExporterUserPreferences.ExportFolder = picked;
                                 exportFolder = picked;
                                 GUI.FocusControl(null);
                             }
@@ -83,7 +78,7 @@ namespace stationeers.modding.exporter
 
                         if (GUILayout.Button("Clear", GUILayout.Width(80), GUILayout.Height(22)))
                         {
-                            EditorPrefs.DeleteKey(ExportFolderKey);
+                            StationeersExporterUserPreferences.ClearExportFolder();
                             exportFolder = string.Empty;
                             GUI.FocusControl(null);
                         }

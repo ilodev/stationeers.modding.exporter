@@ -18,7 +18,7 @@ namespace stationeers.modding.exporter
         // EditorPrefs key names
         private const string ExportFolderKey = "StationeersExport_Folder";
         private const string RunnerEnabledKey = "StationeersRunner_Enabled";
-        private const string RunnerExeOverrideKey = "StationeersRunner.ExeOverride";
+        private const string RunnerExeOverrideKey = "StationeersRunner_ExeOverride";
         private const string AutoIncrementBuildVersionKey = "StationeersExport_AutoIncrementBuild";
 
         /// <summary>
@@ -70,6 +70,17 @@ namespace stationeers.modding.exporter
         public static void ClearRunnerExeOverride()
         {
             EditorPrefs.DeleteKey(RunnerExeOverrideKey);
+        }
+
+        /// <summary>
+        /// Clears the export folder path preference.
+        /// </summary>
+        /// <remarks>
+        /// This removes the key entirely from EditorPrefs, rather than setting it to an empty string.
+        /// </remarks>
+        public static void ClearExportFolder()
+        {
+            EditorPrefs.DeleteKey(ExportFolderKey);
         }
 
         /// <summary>
