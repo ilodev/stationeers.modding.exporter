@@ -133,7 +133,7 @@ namespace stationeers.modding.exporter
                 autoReferenced = true,
                 overrideReferences = true,
                 precompiledReferences = (precompiledReferences ?? new List<string>()).ToArray(),
-                defineConstraints = (defineConstraints ?? new List<string>()).ToArray(),
+                defineConstraints = defineConstraints?.ToArray() ?? new[] { "STATIONEERS_DLL_PRESENT" },
                 versionDefines = Array.Empty<VersionDefine>(),
                 noEngineReferences = false
             };
