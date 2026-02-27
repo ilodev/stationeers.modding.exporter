@@ -62,7 +62,16 @@ namespace stationeers.modding.exporter
                     "LaunchPadBooster.dll",
                     "UniTask.dll"
                 },
-                defineConstraints: new List<string>()
+                defineConstraints: new List<string>(),
+                versionDefines: new List<VersionDefine> 
+                {
+                    new VersionDefine
+                    {
+                        name = "stationeers.modding.assemblies",
+                        expression = "",
+                        define = "STATIONEERS_DLL_PRESENT"
+                    }
+                }
             );
         }
 
@@ -100,7 +109,8 @@ namespace stationeers.modding.exporter
             string rootNamespace,
             List<string> references,
             List<string> precompiledReferences,
-            List<string> defineConstraints)
+            List<string> defineConstraints,
+            List<VersionDefine> versionDefines)
         {
             if (string.IsNullOrWhiteSpace(folderPath))
                 throw new ArgumentException("folderPath is null or empty.", nameof(folderPath));
@@ -112,7 +122,7 @@ namespace stationeers.modding.exporter
             // Ensure folder exists (AssetDatabase requires a project-relative path).
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                Debug.LogError("[AsmDef] Folder not found: " + folderPath);
+                Debug.LogError("[AssemblyDefinitionUtil] Folder not found: " + folderPath);
                 return;
             }
 
@@ -127,14 +137,14 @@ namespace stationeers.modding.exporter
                 name = assemblyName,
                 rootNamespace = rootNamespace ?? string.Empty,
                 references = (references ?? new List<string>()).ToArray(),
-                includePlatforms = new[] { "Editor", "WindowsStandalone64" },
+                includePlatforms = new[] { "Editor" },
                 excludePlatforms = Array.Empty<string>(),
                 allowUnsafeCode = false,
                 autoReferenced = true,
                 overrideReferences = true,
                 precompiledReferences = (precompiledReferences ?? new List<string>()).ToArray(),
                 defineConstraints = defineConstraints?.ToArray() ?? new[] { "STATIONEERS_DLL_PRESENT" },
-                versionDefines = Array.Empty<VersionDefine>(),
+                versionDefines = versionDefines?.ToArray() ?? Array.Empty<VersionDefine>(),
                 noEngineReferences = false
             };
 
@@ -205,7 +215,7 @@ namespace stationeers.modding.exporter
         /// This exporter does not currently populate these.
         /// </remarks>
         [Serializable]
-        private sealed class VersionDefine
+        public sealed class VersionDefine
         {
             public string name;
             public string expression;
