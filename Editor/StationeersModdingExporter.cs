@@ -123,6 +123,10 @@ namespace stationeers.modding.exporter
                             File.Copy(pdbSourcePath, pdbDestPath, overwrite);
                             manifest.pdbsCopied.Add(pdbFileName);
                         }
+                        else
+                        {
+                            manifest.warnings.Add($"Missing PDB: {pdbSourcePath} (asmdef: {asmdefAssetPath})");
+                        }
                     }
 
                     processed++;
