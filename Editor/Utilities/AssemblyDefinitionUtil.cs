@@ -36,7 +36,7 @@ namespace stationeers.modding.exporter
             string productName = StationeersModdingExport.Sanitize(PlayerSettings.productName);
             if (string.IsNullOrWhiteSpace(productName))
             {
-                Debug.LogWarning("[AsmDef] PlayerSettings.productName is empty after sanitizing. Aborting asmdef creation.");
+                Debug.LogWarning("[AssemblyDefinitionUtil] PlayerSettings.productName is empty after sanitizing. Aborting asmdef creation.");
                 return;
             }
 
