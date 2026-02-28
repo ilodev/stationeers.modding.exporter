@@ -45,7 +45,9 @@ namespace stationeers.modding.exporter
         /// </summary>
         private static string GetLaunchArgs()
         {
-            return StationeersExporterUserPreferences.RunnerArguments?.Trim();
+            string args = StationeersExporterUserPreferences.RunnerArguments?.Trim();
+            args += $" {StationeersExporterSettings.instance.RunnerProjectArguments?.Trim()}";
+            return args;
         }
 
         /// <summary>

@@ -93,5 +93,14 @@ namespace stationeers.modding.exporter
         /// Call this after changing settings via code.
         /// </remarks>
         public void SaveNow() => Save(true);
+
+
+        /// <summary>
+        /// Project specific steam arguments .
+        /// </summary>
+        /// <remarks>
+        /// This will be appended to the overal arguments from User Preferences.
+        /// </remarks>
+        public string RunnerProjectArguments = "";
     }
 }

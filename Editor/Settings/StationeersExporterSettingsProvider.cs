@@ -10,6 +10,7 @@ namespace stationeers.modding.exporter
         private static bool _sanityFoldout = true;
         private static bool _aboutFoldout = true;
         private static bool _exportFoldout = true;
+        private static bool _runnerFoldout = false;
 
         // create toggles (only meaningful if missing)
         private static bool _createAbout = true;
@@ -39,7 +40,9 @@ namespace stationeers.modding.exporter
                     EditorGUILayout.Space(8);
 
                     DrawAboutSection();
+                    EditorGUILayout.Space(8);
 
+                    DrawRunnerSection();
 
                     // Disabled temporarily
                     //EditorGUILayout.Space(8);
@@ -301,6 +304,29 @@ namespace stationeers.modding.exporter
                         }
                     }
 
+                    if (EditorGUI.EndChangeCheck())
+                        s.SaveNow();
+
+                    EditorGUILayout.Space(6);
+                }
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+
+        private static void DrawRunnerSection()
+        {
+            var s = StationeersExporterSettings.instance;
+
+            _runnerFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_runnerFoldout, "Stationeers runner Settings");
+            if (_runnerFoldout)
+            {
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    EditorGUILayout.LabelField("Project specific arguments when running the game", EditorStyles.boldLabel);
+                    EditorGUILayout.Space(2);
+
+                    EditorGUI.BeginChangeCheck();
+                    s.RunnerProjectArguments = EditorGUILayout.TextField("Stationeers arguments", s.RunnerProjectArguments);
                     if (EditorGUI.EndChangeCheck())
                         s.SaveNow();
 
