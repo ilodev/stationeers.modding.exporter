@@ -2,6 +2,14 @@
 
 All notable changes to this package will be documented in this file. The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [1.0.4] - 2026-02-28
+
+
+### Added
+Exe override has preference over steam when running the game.
+Arguments when running the game are not available globally (user preferences) or project specific (project settigns).
+Improved exporting manifest info with missing pdb files.
+
 ## [1.0.3] - 2026-02-26
 
 
