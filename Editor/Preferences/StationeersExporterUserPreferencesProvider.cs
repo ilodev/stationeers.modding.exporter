@@ -150,6 +150,15 @@ namespace stationeers.modding.exporter
                         }
                     }
 
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        string runnerArgs = StationeersExporterUserPreferences.RunnerArguments;
+                        runnerArgs = EditorGUILayout.TextField("Arguments", runnerArgs);
+                        if (EditorGUI.EndChangeCheck())
+                            StationeersExporterUserPreferences.RunnerArguments = runnerArgs;
+                    }
+
                     EditorGUILayout.Space(8);
 
                     if (GUILayout.Button("Run Stationeers"))

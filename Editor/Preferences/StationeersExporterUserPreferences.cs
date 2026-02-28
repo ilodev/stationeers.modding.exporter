@@ -19,6 +19,7 @@ namespace stationeers.modding.exporter
         private const string ExportFolderKey = "StationeersExport_Folder";
         private const string RunnerEnabledKey = "StationeersRunner_Enabled";
         private const string RunnerExeOverrideKey = "StationeersRunner_ExeOverride";
+        private const string StationeersRunner_ArgumentsKey = "StationeersRunner_Arguments";
         private const string AutoIncrementBuildVersionKey = "StationeersExport_AutoIncrementBuild";
 
         /// <summary>
@@ -70,6 +71,15 @@ namespace stationeers.modding.exporter
         public static void ClearRunnerExeOverride()
         {
             EditorPrefs.DeleteKey(RunnerExeOverrideKey);
+        }
+
+        /// <summary>
+        /// Returns a string with the command line args to run the game.
+        /// </summary>
+        public static string RunnerArguments
+        {
+            get => EditorPrefs.GetString(StationeersRunner_ArgumentsKey, "");
+            set => EditorPrefs.SetString(StationeersRunner_ArgumentsKey, value ?? "");
         }
 
         /// <summary>

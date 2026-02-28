@@ -41,6 +41,14 @@ namespace stationeers.modding.exporter
         }
 
         /// <summary>
+        /// Returns a clean string with the arguments to run the game.
+        /// </summary>
+        private static string GetLaunchArgs()
+        {
+            return StationeersExporterUserPreferences.RunnerArguments?.Trim();
+        }
+
+        /// <summary>
         /// Launches Stationeers using the configured fallback chain.
         /// </summary>
         /// <remarks>
@@ -95,16 +103,23 @@ namespace stationeers.modding.exporter
         {
             try
             {
+                var args = GetLaunchArgs();
+
+                // steam://rungameid/<appid>//<launch options>
+                var uri = string.IsNullOrWhiteSpace(args)
+                    ? $"steam://rungameid/{AppId}"
+                    : $"steam://rungameid/{AppId}//{Uri.EscapeDataString(args)}";
+
                 var psi = new ProcessStartInfo
                 {
-                    FileName = $"steam://rungameid/{AppId}",
+                    FileName = uri,
                     UseShellExecute = true
                 };
 
                 var process = Process.Start(psi);
                 UnityEngine.Debug.Log(process != null
-                    ? $"[StationeersRunner] Steam URI launch requested (pid={process.Id})."
-                    : "[StationeersRunner] Steam URI launch requested.");
+                    ? $"[StationeersRunner] Steam URI launch requested (pid={process.Id}). Args='{args}'"
+                    : $"[StationeersRunner] Steam URI launch requested. Args='{args}'");
 
                 return true;
             }
@@ -129,13 +144,14 @@ namespace stationeers.modding.exporter
             }
 
             try
-            {
+            {   
+                var args = GetLaunchArgs();
                 var psi = new ProcessStartInfo
                 {
                     FileName = exePath,
                     WorkingDirectory = Path.GetDirectoryName(exePath),
-                    UseShellExecute = true
-                    // Arguments = "" // Add CLI args if desired.
+                    UseShellExecute = true,
+                    Arguments = string.IsNullOrWhiteSpace(args) ? "" : args
                 };
 
                 Process.Start(psi);

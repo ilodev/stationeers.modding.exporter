@@ -137,7 +137,7 @@ namespace stationeers.modding.exporter
                 name = assemblyName,
                 rootNamespace = rootNamespace ?? string.Empty,
                 references = (references ?? new List<string>()).ToArray(),
-                includePlatforms = new[] { "Editor" },
+                includePlatforms = new[] { "Editor", "WSA", "WindowsStandalone64" },
                 excludePlatforms = Array.Empty<string>(),
                 allowUnsafeCode = false,
                 autoReferenced = true,
