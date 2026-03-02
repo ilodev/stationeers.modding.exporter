@@ -313,9 +313,10 @@ namespace stationeers.modding.exporter
 
             if (abManifest == null)
             {
-                // This is your best “Unity canceled / failed” signal for this call.
-                // Treat it as canceled/failed and abort export.
-                throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
+                Debug.Log("No assetbundle was built.");
+                // This is the best “Unity canceled / failed” signal for this call, but I can't 'fail' the built
+                // if there was just code and no assets. Ideally, treat it as canceled/failed and abort export.
+                // throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
             }
 
             return assetPaths.Count;
