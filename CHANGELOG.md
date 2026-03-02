@@ -9,6 +9,7 @@ All notable changes to this package will be documented in this file. The format 
 Exe override has preference over steam when running the game.
 Arguments when running the game are not available globally (user preferences) or project specific (project settigns).
 Improved exporting manifest info with missing pdb files.
+Detect user cancel while exporting the assetbundles to prevent running the game if cancelled.
 
 ## [1.0.3] - 2026-02-26
 

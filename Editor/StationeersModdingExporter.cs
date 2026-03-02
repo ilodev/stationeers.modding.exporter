@@ -290,7 +290,33 @@ namespace stationeers.modding.exporter
             var platform = BuildTarget.StandaloneWindows.ToString();
             var subDir = Path.Combine(exportFolder, platform);
             Directory.CreateDirectory(subDir);
-            BuildPipeline.BuildAssetBundles(subDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
+
+            AssetBundleManifest abManifest = null;
+            try
+            {
+                abManifest = BuildPipeline.BuildAssetBundles(
+                    subDir,
+                    BuildAssetBundleOptions.None,
+                    BuildTarget.StandaloneWindows);
+            }
+            catch (OperationCanceledException)
+            {
+                // Some Unity paths throw this
+                manifest.warnings.Add("AssetBundle build was canceled.");
+                throw; // let Export() decide how to handle cancel
+            }
+            catch (Exception ex)
+            {
+                manifest.warnings.Add($"AssetBundle build failed: {ex.Message}");
+                throw;
+            }
+
+            if (abManifest == null)
+            {
+                // This is your best “Unity canceled / failed” signal for this call.
+                // Treat it as canceled/failed and abort export.
+                throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
+            }
 
             return assetPaths.Count;
         }
@@ -312,11 +338,9 @@ namespace stationeers.modding.exporter
         public static void Export(BuildPlayerOptions options)
         {
             Debug.Log("Export started");
-
             exportFolder = options.locationPathName;
 
-            var manifest = new StationeersExportManifest
-            {
+            var manifest = new StationeersExportManifest {
                 unityVersion = Application.unityVersion,
                 productName = PlayerSettings.productName,
                 exportFolder = exportFolder,
@@ -326,36 +350,50 @@ namespace stationeers.modding.exporter
                 bundleVersion = PlayerSettings.bundleVersion
             };
 
-            if (CleanBuildCacheIsSet(options))
-                DeleteOutputFolder(exportFolder);
-
-            CreateOutputFolder(exportFolder);
-
-            int assemblies = ExportAssemblies(options, manifest);
-
-            int assets = 0;
-            int folderAssets = 0;
-            if (!BuildScriptsOnlyIsSet(options))
+            try
             {
-                folderAssets = ExportAssets(options, manifest);
-                assets = ExportAssetBundles(options, manifest);
+                if (CleanBuildCacheIsSet(options))
+                    DeleteOutputFolder(exportFolder);
+
+                CreateOutputFolder(exportFolder);
+
+                int assemblies = ExportAssemblies(options, manifest);
+
+                int assets = 0;
+                int folderAssets = 0;
+                if (!BuildScriptsOnlyIsSet(options))
+                {
+                    folderAssets = ExportAssets(options, manifest);
+                    assets = ExportAssetBundles(options, manifest);
+                }
+
+                manifest.assembliesCount = assemblies;
+                manifest.assetsCount = assets;
+                manifest.folderCount = folderAssets;
+                manifest.scenesCount = manifest.scenePathsBundled.Count;
+
+                StationeersExportManifestStore.Save(manifest);
+
+                if (StationeersExporterUserPreferences.AutoIncrementBuild)
+                    StationeersVersioning.IncrementBuildVersion(out var oldVersion, out var newVersion);
+
+                Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders.");
             }
-
-            manifest.assembliesCount = assemblies;
-            manifest.assetsCount = assets;
-            manifest.folderCount = folderAssets;
-            manifest.scenesCount = manifest.scenePathsBundled.Count;
-
-            StationeersExportManifestStore.Save(manifest);
-
-            var path = Path.GetFullPath(StationeersExportManifestStore.ManifestPath)
-               .Replace('\\', '/'); // important for Windows
-            var uri = new Uri(path); // automatically file:/// and escaped
-
-            if (StationeersExporterUserPreferences.AutoIncrementBuild)
-                StationeersVersioning.IncrementBuildVersion(out var oldVersion, out var newVersion);
-            
-            Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders. See  <a href=\"{uri.AbsoluteUri}\">Report</a>");
+            catch (OperationCanceledException oce)
+            {
+                manifest.warnings.Add($"Export canceled: {oce.Message}");
+                StationeersExportManifestStore.Save(manifest);
+                Debug.LogWarning($"Export canceled: {oce.Message}");
+                return;
+            }
+            catch (Exception ex)
+            {
+                manifest.warnings.Add($"Export failed: {ex}");
+                StationeersExportManifestStore.Save(manifest);
+                Debug.LogError($"Export failed: {ex}");
+                throw;
+            }
         }
+
     }
 }
