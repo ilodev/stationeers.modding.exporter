@@ -26,8 +26,10 @@ namespace stationeers.modding.exporter
         /// <returns></returns>
         private static BuildPlayerOptions GetBuildPlayerOptions(BuildPlayerOptions options)
         {
+            Debug.Log($"[GetBuildPlayerOptions] unity={Application.unityVersion} " + 
+                $"active={EditorUserBuildSettings.activeBuildTarget} options.target={options.target} " +
+                $"incoming='{options.locationPathName}'");
 
-            
             string exportFolder = StationeersExporterUserPreferences.ExportFolder;
 
             if (string.IsNullOrEmpty(exportFolder) || !Directory.Exists(exportFolder))
@@ -49,6 +51,8 @@ namespace stationeers.modding.exporter
             // IMPORTANT: locationPathName is usually a full *file* path for the built player (e.g. .../MyGame.exe)
             // For Windows Standalone, it must include the .exe.
             options.locationPathName = ComposePlayerLocation(options, exportFolder);
+
+            Debug.Log($"[GetBuildPlayerOptions] outgoing='{options.locationPathName}'");
 
             return options;
         }
@@ -102,6 +106,10 @@ namespace stationeers.modding.exporter
         /// <param name="options"></param>
         private static void OnBuildButtonPressed(BuildPlayerOptions options)
         {
+            Debug.Log($"[OnBuildButtonPressed] unity={Application.unityVersion} " +
+                $"active={EditorUserBuildSettings.activeBuildTarget} options.target={options.target} " +
+                $"received='{options.locationPathName}'");
+
             Debug.Log($"Saving at {options.locationPathName}");
             if (!ExportPreflight.SaveAllWithPrompts())
                 return; // user canceled or something failed to save
