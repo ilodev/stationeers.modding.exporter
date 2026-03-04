@@ -10,5 +10,8 @@
   ],
   "author": {
     "name": "Stationeers Modding Team"
+  },
+  "dependencies": {
+    "com.unity.modules.assetbundle": "1.0.0",
   }
 }
