@@ -26,14 +26,9 @@ namespace stationeers.modding.exporter
         /// <returns></returns>
         private static BuildPlayerOptions GetBuildPlayerOptions(BuildPlayerOptions options)
         {
-            Debug.Log($"[GetBuildPlayerOptions] unity={Application.unityVersion} " + 
-                $"active={EditorUserBuildSettings.activeBuildTarget} options.target={options.target} " +
-                $"incoming='{options.locationPathName}'");
 
-            // Force "no player target"
+            // Force "no player target" and no subtargeet
             options.target = BuildTarget.NoTarget;
-
-            // Also clear subtarget just in case (Unity may reapply it)
             options.subtarget = 0;
 
             string exportFolder = StationeersExporterUserPreferences.ExportFolder;
@@ -55,10 +50,8 @@ namespace stationeers.modding.exporter
             }
 
             // IMPORTANT: locationPathName is usually a full *file* path for the built player (e.g. .../MyGame.exe)
-            // For Windows Standalone, it must include the .exe.
+            // For Windows Standalone, it must include the .exe. That is why we are setting no target
             options.locationPathName = ComposePlayerLocation(options, exportFolder);
-
-            Debug.Log($"[GetBuildPlayerOptions] outgoing='{options.locationPathName}'");
 
             return options;
         }
@@ -112,10 +105,6 @@ namespace stationeers.modding.exporter
         /// <param name="options"></param>
         private static void OnBuildButtonPressed(BuildPlayerOptions options)
         {
-            Debug.Log($"[OnBuildButtonPressed] unity={Application.unityVersion} " +
-                $"active={EditorUserBuildSettings.activeBuildTarget} options.target={options.target} " +
-                $"received='{options.locationPathName}'");
-
             Debug.Log($"Saving at {options.locationPathName}");
             if (!ExportPreflight.SaveAllWithPrompts())
                 return; // user canceled or something failed to save
