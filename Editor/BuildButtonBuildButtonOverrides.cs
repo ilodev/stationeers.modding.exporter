@@ -30,6 +30,12 @@ namespace stationeers.modding.exporter
                 $"active={EditorUserBuildSettings.activeBuildTarget} options.target={options.target} " +
                 $"incoming='{options.locationPathName}'");
 
+            // Force "no player target"
+            options.target = BuildTarget.NoTarget;
+
+            // Also clear subtarget just in case (Unity may reapply it)
+            options.subtarget = 0;
+
             string exportFolder = StationeersExporterUserPreferences.ExportFolder;
 
             if (string.IsNullOrEmpty(exportFolder) || !Directory.Exists(exportFolder))
