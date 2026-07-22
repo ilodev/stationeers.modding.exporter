@@ -21,6 +21,7 @@ namespace stationeers.modding.exporter
         private const string RunnerExeOverrideKey = "StationeersRunner_ExeOverride";
         private const string StationeersRunner_ArgumentsKey = "StationeersRunner_Arguments";
         private const string AutoIncrementBuildVersionKey = "StationeersExport_AutoIncrementBuild";
+        private const string IgnorePreflightResultsKey = "StationeersExport_IgnorePreflightResults";
 
         /// <summary>
         /// Gets or sets the export output folder.
@@ -105,5 +106,18 @@ namespace stationeers.modding.exporter
             get => EditorPrefs.GetBool(AutoIncrementBuildVersionKey, false);
             set => EditorPrefs.SetBool(AutoIncrementBuildVersionKey, value);
         }
+
+        /// <summary>
+        /// Gets or sets whether the exporter should honor the preflight checks results during export.
+        /// </summary>
+        /// <remarks>
+        /// Stored in EditorPrefs under key "StationeersExport_IgnorePreflightResults".
+        /// </remarks>
+        public static bool IgnorePreflightResults
+        {
+            get => EditorPrefs.GetBool(IgnorePreflightResultsKey, false);
+            set => EditorPrefs.SetBool(IgnorePreflightResultsKey, value);
+        }
+
     }
 }

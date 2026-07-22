@@ -98,13 +98,24 @@ namespace stationeers.modding.exporter
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         bool autoIncrementBuild = StationeersExporterUserPreferences.AutoIncrementBuild;
-
                         EditorGUI.BeginChangeCheck();
                         autoIncrementBuild = EditorGUILayout.Toggle("Auto-increment Build", autoIncrementBuild);
                         if (EditorGUI.EndChangeCheck())
                         {
                             StationeersExporterUserPreferences.AutoIncrementBuild = autoIncrementBuild;
                         }
+                    }
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        bool ignorePreflightResults = StationeersExporterUserPreferences.IgnorePreflightResults;
+                        EditorGUI.BeginChangeCheck();
+                        ignorePreflightResults = EditorGUILayout.Toggle("Ignore Preflight results", ignorePreflightResults);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            StationeersExporterUserPreferences.IgnorePreflightResults = ignorePreflightResults;
+                        }
+
                     }
 
                 }

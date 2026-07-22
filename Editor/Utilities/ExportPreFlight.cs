@@ -73,6 +73,10 @@ namespace stationeers.modding.exporter
             if (!SavePrefabStageIfNeededWithPrompt())
                 return false;
 
+            // Save FBX importer settings and synchronously reimport any loaded dirty FBX assets.
+            if (!SaveLoadedFbxAssets())
+                return false;
+
             // Project assets
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -83,6 +87,11 @@ namespace stationeers.modding.exporter
                 Debug.LogWarning(
                     "[ExportPreflight] Items still unsaved after prompts:\n - " +
                     string.Join("\n - ", leftover));
+
+                // User wanted to ignore all the preflight results and continue exporting
+                if (StationeersExporterUserPreferences.IgnorePreflightResults == true)
+                    return true;
+
                 return false;
             }
 
@@ -139,6 +148,18 @@ namespace stationeers.modding.exporter
                 if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                // Skip dirty in-memory FBX representations. FBX source files are foreign assets and
+                // cannot be saved by AssetDatabase.SaveAssets. Their editable importer settings are
+                // stored in the .meta file and are handled by SaveLoadedFbxAssets before verification.
+                if (IsFbxAssetPath(path))
+                    continue;
+
+                // Skip other foreign asset representations because they are generated import results
+                // rather than Unity-serialized assets that AssetDatabase.SaveAssets can write.
+                var mainAsset = AssetDatabase.LoadMainAssetAtPath(path);
+                if (mainAsset != null && AssetDatabase.IsForeignAsset(mainAsset))
+                    continue;
+
                 // Skip assets that Unity generally does not serialize in a useful way for SaveAssets,
                 // or that are commonly edited as loose files.
                 var mainType = AssetDatabase.GetMainAssetTypeAtPath(path);
@@ -155,6 +176,116 @@ namespace stationeers.modding.exporter
                 if (seenPaths.Add(path))
                     dirtyItems.Add(path);
             }
+        }
+
+        private static bool SaveLoadedFbxAssets()
+        {
+            // An FBX file is a foreign source asset. Unity cannot save changes to the generated
+            // GameObject, Mesh, Material, or AnimationClip representations back into the FBX.
+            // Editable settings such as external object remaps are stored on the AssetImporter
+            // in the FBX .meta file.
+            var fbxPaths = FindLoadedDirtyFbxPaths();
+
+            foreach (string path in fbxPaths)
+            {
+                var importer = AssetImporter.GetAtPath(path);
+                if (importer == null)
+                {
+                    Debug.LogWarning(
+                        "[ExportPreflight] Failed to find the AssetImporter for FBX asset: " +
+                        path);
+                    return false;
+                }
+
+                try
+                {
+                    // Write any pending importer or material remap settings to the .meta file.
+                    AssetDatabase.WriteImportSettingsIfDirty(path);
+
+                    if (EditorUtility.IsDirty(importer))
+                    {
+                        // SaveAndReimport writes dirty importer settings and synchronously reimports
+                        // the FBX using the updated .meta data.
+                        importer.SaveAndReimport();
+                    }
+                    else
+                    {
+                        // The generated FBX representation can be marked dirty even when its importer
+                        // is already clean. Reimport it synchronously so the export uses current source
+                        // data and current importer settings.
+                        AssetDatabase.ImportAsset(
+                            path,
+                            ImportAssetOptions.ForceUpdate |
+                            ImportAssetOptions.ForceSynchronousImport);
+                    }
+
+                    // WriteImportSettingsIfDirty normally leaves the importer clean, but check again
+                    // in case an import callback changed importer settings during the reimport.
+                    if (EditorUtility.IsDirty(importer))
+                    {
+                        AssetDatabase.WriteImportSettingsIfDirty(path);
+                        importer.SaveAndReimport();
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                    Debug.LogWarning(
+                        "[ExportPreflight] Failed to save or reimport FBX asset: " +
+                        path);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static HashSet<string> FindLoadedDirtyFbxPaths()
+        {
+            // Multiple generated FBX objects can resolve to the same source asset path.
+            // Use a HashSet so each FBX is saved and reimported only once.
+            var fbxPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var objs = Resources.FindObjectsOfTypeAll<UnityEngine.Object>();
+            foreach (var obj in objs)
+            {
+                if (obj == null)
+                    continue;
+
+                if (!AssetDatabase.Contains(obj))
+                    continue;
+
+                if (!EditorUtility.IsDirty(obj))
+                    continue;
+
+                string path = AssetDatabase.GetAssetPath(obj);
+                if (string.IsNullOrEmpty(path))
+                    continue;
+
+                if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!IsFbxAssetPath(path))
+                    continue;
+
+                if (!File.Exists(path))
+                    continue;
+
+                fbxPaths.Add(path);
+            }
+
+            return fbxPaths;
+        }
+
+        private static bool IsFbxAssetPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return false;
+
+            return string.Equals(
+                Path.GetExtension(path),
+                ".fbx",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool SavePrefabStageIfNeededWithPrompt()
