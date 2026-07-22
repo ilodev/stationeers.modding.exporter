@@ -8,6 +8,7 @@ All notable changes to this package will be documented in this file. The format 
 ### Added
 FBX are treated as foreign assets and should not be dirty when exporting.
 Added a preference to ignore the preflight check when exporting and force a build.
+Sanity check in Project settings to ensure Layers and Tags match Stationeers.
 
 ## [1.0.4] - 2026-02-28
 

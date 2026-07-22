@@ -22,6 +22,10 @@ namespace stationeers.modding.exporter
         private static bool _sanityCached;
         private static bool _hasAboutFolder, _hasAboutXml, _hasGameData, _hasAsmDef, _hasEntryScript;
 
+        // Tags and Layer sanity
+        private static bool _hasRequiredTagsAndLayers;
+        private static bool _createTagsAndLayers = true;
+
         [SettingsProvider]
         public static SettingsProvider CreateProvider()
         {
@@ -70,6 +74,7 @@ namespace stationeers.modding.exporter
             // Replace with looking specifically for the one asmdef
             _hasAsmDef = AssetUtility.GetAssets("t:AssemblyDefinitionAsset").Count > 0;
             _hasEntryScript = HasEntryPointScript();
+            _hasRequiredTagsAndLayers = TagLayerUtility.HasRequiredSettings();
 
             _sanityCached = true;
         }
@@ -81,6 +86,7 @@ namespace stationeers.modding.exporter
                 (_hasAboutXml ? 0 : 1) +
                 (_hasGameData ? 0 : 1) +
                 (_hasAsmDef ? 0 : 1) +
+                (_hasRequiredTagsAndLayers ? 0 : 1) +
                 (_hasEntryScript ? 0 : 1);
             if (missing > 0)
                 _sanityFoldout = true;
@@ -114,6 +120,7 @@ namespace stationeers.modding.exporter
                     DrawSanityRow("Assets/GameData folder", _hasGameData, ref _createGameData);
                     DrawSanityRow("Assembly Definition (.asmdef)", _hasAsmDef, ref _createAsmDef);
                     DrawSanityRow("Entry point script", _hasEntryScript, ref _createEntryScript);
+                    DrawSanityRow("Required Tags and Layers", _hasRequiredTagsAndLayers, ref _createTagsAndLayers);
 
                     EditorGUILayout.Space(8);
 
@@ -123,7 +130,7 @@ namespace stationeers.modding.exporter
                         {
                             if (GUILayout.Button("Create Selected"))
                             {
-                                CreateSelected(_hasAboutFolder, _hasAboutXml, _hasGameData, _hasAsmDef, _hasEntryScript);
+                                CreateSelected(_hasAboutFolder, _hasAboutXml, _hasGameData, _hasAsmDef, _hasEntryScript, _hasRequiredTagsAndLayers);
                             }
                         }
                     }
@@ -161,7 +168,7 @@ namespace stationeers.modding.exporter
             EditorGUILayout.Space(2);
         }
 
-        private static void CreateSelected(bool hasAboutFolder, bool hasAboutXml, bool hasGameData, bool hasAsmDef, bool hasEntryScript)
+        private static void CreateSelected(bool hasAboutFolder, bool hasAboutXml, bool hasGameData, bool hasAsmDef, bool hasEntryScript, bool hasRequiredTagsAndLayers)
         {
             // About
             if ((!hasAboutFolder || !hasAboutXml) && _createAbout)
@@ -178,6 +185,10 @@ namespace stationeers.modding.exporter
             // entry script
             if (!hasEntryScript && _createEntryScript)
                 AssetUtility.CreateDefaultScript();
+
+            // tags and layers
+            if (!hasRequiredTagsAndLayers && _createTagsAndLayers)
+                TagLayerUtility.ApplyRequiredSettingsWithPrompt();
 
             AssetDatabase.Refresh();
             Debug.Log("Sanity check: create selected completed.");
