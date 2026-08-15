@@ -42,7 +42,7 @@ The current Tools menu is temporary and contains individual test functions for t
 
 ## Version
 
-Version 1.0.5
+Version 1.0.56
 
 ## Credits
 
