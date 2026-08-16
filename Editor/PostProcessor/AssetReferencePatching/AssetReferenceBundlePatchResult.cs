@@ -22,5 +22,17 @@ namespace stationeers.modding.exporter
             new AssetReferenceBundlePatchResult(
                 0,
                 Array.Empty<string>());
+
+        public AssetReferenceBundlePatchResult(
+            int rewrittenReferenceCount,
+            IEnumerable<string> removedProxyAssetPaths)
+        {
+            RewrittenReferenceCount = rewrittenReferenceCount;
+
+            RemovedProxyAssetPaths =
+                new List<string>(
+                    removedProxyAssetPaths ??
+                    Array.Empty<string>());
+        }
     }
 }

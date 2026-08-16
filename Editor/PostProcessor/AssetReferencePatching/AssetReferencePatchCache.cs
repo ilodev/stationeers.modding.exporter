@@ -238,5 +238,40 @@ namespace stationeers.modding.exporter
 
             return result.ToString();
         }
+        public static bool TryLoadPatchMetadata(
+    string patchKey,
+    string bundleFileName,
+    out AssetReferenceBundlePatchResult result)
+        {
+            string bundlePath =
+                GetPatchedBundlePath(
+                    patchKey,
+                    bundleFileName);
+
+            string metadataPath =
+                bundlePath + ".json";
+
+            if (!File.Exists(metadataPath))
+            {
+                result = null;
+                return false;
+            }
+
+            var metadata =
+                JsonUtility.FromJson<PatchCacheMetadata>(
+                    File.ReadAllText(metadataPath));
+
+            if (metadata == null)
+            {
+                result = null;
+                return false;
+            }
+
+            result = new AssetReferenceBundlePatchResult(
+                metadata.rewrittenReferenceCount,
+                metadata.removedProxyAssetPaths);
+
+            return true;
+        }
     }
 }
