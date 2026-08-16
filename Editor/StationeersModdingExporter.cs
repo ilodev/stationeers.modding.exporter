@@ -492,7 +492,10 @@ namespace stationeers.modding.exporter
             try
             {
                 if (CleanBuildCacheIsSet(options))
+                {
                     DeleteOutputFolder(exportFolder);
+                    AssetReferencePatchCache.Clear();
+                }
 
                 CreateOutputFolder(exportFolder);
 

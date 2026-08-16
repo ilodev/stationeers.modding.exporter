@@ -302,5 +302,17 @@ namespace stationeers.modding.exporter
             result = cachedResult;
             return true;
         }
+
+        public static void Clear()
+        {
+            string cacheRoot =
+                Path.GetFullPath(
+                    Path.Combine(
+                        "Library",
+                        "StationeersExporter"));
+
+            if (Directory.Exists(cacheRoot))
+                Directory.Delete(cacheRoot, true);
+        }
     }
 }
