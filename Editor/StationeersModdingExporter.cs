@@ -394,19 +394,35 @@ namespace stationeers.modding.exporter
                         pristineBundlePath,
                         patches);
 
-                var patchResult =
-                    AssetReferenceBundlePatcher.Patch(
+                AssetReferenceBundlePatchResult patchResult;
+
+                if (AssetReferencePatchCache.TryRestorePatchedBundleWithMetadata(
+                        patchKey,
                         assetsBundlePath,
-                        patches);
+                        out patchResult))
+                {
+                    Debug.Log("Asset reference patching: cache hit.");
+                }
+                else
+                {
+                    patchResult =
+                        AssetReferenceBundlePatcher.Patch(
+                            assetsBundlePath,
+                            patches);
 
-                AssetReferencePatchCache.SavePatchedBundle(
-                    patchKey,
-                    assetsBundlePath);
+                    AssetReferencePatchCache.SavePatchedBundle(
+                        patchKey,
+                        assetsBundlePath);
 
-                AssetReferencePatchCache.SavePatchMetadata(
-                    patchKey,
-                    Path.GetFileName(assetsBundlePath),
-                    patchResult);
+                    AssetReferencePatchCache.SavePatchMetadata(
+                        patchKey,
+                        Path.GetFileName(assetsBundlePath),
+                        patchResult);
+
+                    Debug.Log("Asset reference patching: cache updated.");
+                }
+
+
 
                 manifest.assetReferencePatching.rewrittenReferenceCount =
                     patchResult.RewrittenReferenceCount;
