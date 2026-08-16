@@ -78,11 +78,13 @@ namespace stationeers.modding.exporter
         }
 
         public static string ComputePatchKey(
-            string pristineBundlePath,
+            string bundleHash,
             IReadOnlyList<ResolvedAssetReferencePatch> patches)
         {
-            string bundleHash =
-                ComputeFileHash(pristineBundlePath);
+            if (string.IsNullOrWhiteSpace(bundleHash))
+                throw new ArgumentException(
+                    "Bundle hash is required.",
+                    nameof(bundleHash));
 
             var mappingText = new StringBuilder();
 
@@ -216,16 +218,6 @@ namespace stationeers.modding.exporter
             File.WriteAllText(
                 metadataPath,
                 JsonUtility.ToJson(metadata, true));
-        }
-
-        private static string ComputeFileHash(string path)
-        {
-            using (var stream = File.OpenRead(path))
-            using (var sha = SHA256.Create())
-            {
-                return ToHex(
-                    sha.ComputeHash(stream));
-            }
         }
 
         private static string ToHex(byte[] bytes)

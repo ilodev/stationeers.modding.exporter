@@ -275,29 +275,60 @@ namespace stationeers.modding.exporter
             return buildScenes.ToList();
         }
 
-        private static int ExportAssetBundles(BuildPlayerOptions options, StationeersExportManifest manifest)
+        private static int ExportAssetBundles(
+            BuildPlayerOptions options,
+            StationeersExportManifest manifest)
         {
             Debug.Log("Export AssetBundles");
 
-            List<string> assetPaths = AssetUtility.GetAssets("t:prefab t:scriptableobject");
+            List<string> assetPaths =
+                AssetUtility.GetAssets("t:prefab t:scriptableobject");
+
             assetPaths.ForEach(s => SetAssetBundle(s));
             manifest.assetPathsBundled.AddRange(assetPaths);
 
-            List<string> scenePaths = SyncSceneAssetBundles("scenes");
-            scenePaths = scenePaths.Where(System.IO.File.Exists).ToList();
+            List<string> scenePaths =
+                SyncSceneAssetBundles("scenes");
+
+            scenePaths =
+                scenePaths
+                    .Where(System.IO.File.Exists)
+                    .ToList();
+
             manifest.scenePathsBundled.AddRange(scenePaths);
 
-            var platform = BuildTarget.StandaloneWindows.ToString();
-            var subDir = Path.Combine(exportFolder, platform);
+            var platform =
+                BuildTarget.StandaloneWindows.ToString();
+
+            var subDir =
+                Path.Combine(
+                    exportFolder,
+                    platform);
+
             Directory.CreateDirectory(subDir);
+
+            string bundleName =
+                $"{Sanitize(PlayerSettings.productName)}.assets";
+
+            string assetsBundlePath =
+                Path.Combine(
+                    subDir,
+                    bundleName);
 
             IReadOnlyList<ResolvedAssetReferencePatch> patches =
                 Array.Empty<ResolvedAssetReferencePatch>();
 
             bool patchingEnabled =
-                StationeersExporterSettings.instance.enableAssetReferencePatching;
+                StationeersExporterSettings
+                    .instance
+                    .enableAssetReferencePatching;
 
-            manifest.assetReferencePatching.enabled = patchingEnabled;
+            manifest.assetReferencePatching.enabled =
+                patchingEnabled;
+
+            // ------------------------------------------------------------
+            // Collect patch mappings
+            // ------------------------------------------------------------
 
             if (patchingEnabled)
             {
@@ -308,45 +339,60 @@ namespace stationeers.modding.exporter
                     AssetReferencePatchRegistry.Resolve(
                         collectedPatches);
 
-                manifest.assetReferencePatching.mappingCount = patches.Count;
+                manifest.assetReferencePatching.mappingCount =
+                    patches.Count;
 
                 foreach (var patch in patches)
                 {
                     manifest.assetReferencePatching.mappings.Add(
                         new AssetReferencePatchManifestEntry
                         {
-                            proxyAssetPath = patch.ProxyAssetPath,
-                            targetSerializedFile = patch.Source.TargetSerializedFile,
-                            targetPathId = patch.Source.TargetPathId,
-                            targetTypeId = patch.Source.TargetTypeId,
-                            cleanup = patch.Source.Cleanup.ToString()
+                            proxyAssetPath =
+                                patch.ProxyAssetPath,
+
+                            targetSerializedFile =
+                                patch.Source.TargetSerializedFile,
+
+                            targetPathId =
+                                patch.Source.TargetPathId,
+
+                            targetTypeId =
+                                patch.Source.TargetTypeId,
+
+                            cleanup =
+                                patch.Source.Cleanup.ToString()
                         });
                 }
 
                 Debug.Log(
-                    $"Asset reference patching: {patches.Count} mapping(s).");
+                    $"Asset reference patching: " +
+                    $"{patches.Count} mapping(s).");
             }
 
-            string assetsBundlePath = Path.Combine(
-                subDir,
-                $"{Sanitize(PlayerSettings.productName)}.assets");
+            // ------------------------------------------------------------
+            // Build AssetBundles
+            // ------------------------------------------------------------
 
             AssetBundleManifest abManifest = null;
+
             try
             {
                 if (patchingEnabled && patches.Count > 0)
                 {
-                    // Restore the last pristine Unity-built bundle before running
-                    // Unity's incremental AssetBundle build. This prevents Unity
-                    // from seeing/reusing our post-processed output as its input.
-                    bool restoredPristine = AssetReferencePatchCache.RestorePristineBundle(
-                            assetsBundlePath,
-                            platform);
+                    // Restore the pristine Unity-built bundle before invoking
+                    // Unity's incremental AssetBundle build.
+                    //
+                    // If no pristine cache exists, force exactly one rebuild so
+                    // Unity cannot accidentally reuse an already-patched output.
+                    bool restoredPristine =
+                        AssetReferencePatchCache
+                            .RestorePristineBundle(
+                                assetsBundlePath,
+                                platform);
 
-                    // Include each registered proxy as an explicit root of the
-                    // REAL assets bundle. This lets the post-processor obtain
-                    // the proxy's actual PathID from AssetBundle.m_Container
-                    // without relying on a separate probe bundle.
+                    // Registered proxy assets are explicit roots of the real
+                    // assets bundle so their actual PathIDs can later be obtained
+                    // directly from AssetBundle.m_Container.
                     var buildMap =
                         AssetReferencePatchBuildMap.Create(
                             Sanitize(PlayerSettings.productName),
@@ -354,64 +400,93 @@ namespace stationeers.modding.exporter
                             scenePaths,
                             patches);
 
-                    var buildOptions = restoredPristine
+                    var buildOptions =
+                        restoredPristine
                             ? BuildAssetBundleOptions.None
-                            : BuildAssetBundleOptions.ForceRebuildAssetBundle;
+                            : BuildAssetBundleOptions
+                                .ForceRebuildAssetBundle;
 
-                    abManifest = BuildPipeline.BuildAssetBundles(
-                        subDir,
-                        buildMap,
-                        BuildAssetBundleOptions.None,
-                        BuildTarget.StandaloneWindows);
+                    abManifest =
+                        BuildPipeline.BuildAssetBundles(
+                            subDir,
+                            buildMap,
+                            buildOptions,
+                            BuildTarget.StandaloneWindows);
                 }
                 else
                 {
-                    abManifest = BuildPipeline.BuildAssetBundles(
-                        subDir,
-                        BuildAssetBundleOptions.None,
-                        BuildTarget.StandaloneWindows);
+                    abManifest =
+                        BuildPipeline.BuildAssetBundles(
+                            subDir,
+                            BuildAssetBundleOptions.None,
+                            BuildTarget.StandaloneWindows);
                 }
             }
             catch (OperationCanceledException)
             {
-                // Some Unity paths throw this
-                manifest.warnings.Add("AssetBundle build was canceled.");
-                throw; // let Export() decide how to handle cancel
+                manifest.warnings.Add(
+                    "AssetBundle build was canceled.");
+
+                throw;
             }
             catch (Exception ex)
             {
-                manifest.warnings.Add($"AssetBundle build failed: {ex.Message}");
+                manifest.warnings.Add(
+                    $"AssetBundle build failed: {ex.Message}");
+
                 throw;
             }
+
+            // ------------------------------------------------------------
+            // Patch assets bundle
+            // ------------------------------------------------------------
 
             if (abManifest != null &&
                 patchingEnabled &&
                 patches.Count > 0)
             {
-                string pristineBundlePath =
-                    AssetReferencePatchCache.SavePristineBundle(
-                        assetsBundlePath,
-                        platform);
+                // Use Unity's own content hash rather than hashing the
+                // complete bundle file ourselves.
+                string unityBundleHash =
+                    abManifest
+                        .GetAssetBundleHash(bundleName)
+                        .ToString();
+
+                // IMPORTANT:
+                // Save this BEFORE patching. This is Unity's pristine output
+                // and will be restored before the next incremental build.
+                AssetReferencePatchCache.SavePristineBundle(
+                    assetsBundlePath,
+                    platform);
 
                 string patchKey =
                     AssetReferencePatchCache.ComputePatchKey(
-                        pristineBundlePath,
+                        unityBundleHash,
                         patches);
 
                 AssetReferenceBundlePatchResult patchResult;
 
-                if (AssetReferencePatchCache.TryRestorePatchedBundleWithMetadata(
+                // --------------------------------------------------------
+                // Patched-output cache
+                // --------------------------------------------------------
+
+                if (AssetReferencePatchCache
+                    .TryRestorePatchedBundleWithMetadata(
                         patchKey,
                         assetsBundlePath,
                         out patchResult))
                 {
-                    manifest.assetReferencePatching.cacheHit = true;
+                    manifest.assetReferencePatching.cacheHit =
+                        true;
 
-                    Debug.Log("Asset reference patching: cache hit.");
+                    Debug.Log(
+                        "Asset reference patching: cache hit.");
                 }
                 else
                 {
-                    manifest.assetReferencePatching.cacheHit = false;
+                    manifest.assetReferencePatching.cacheHit =
+                        false;
+
                     patchResult =
                         AssetReferenceBundlePatcher.Patch(
                             assetsBundlePath,
@@ -426,38 +501,45 @@ namespace stationeers.modding.exporter
                         Path.GetFileName(assetsBundlePath),
                         patchResult);
 
-                    Debug.Log("Asset reference patching: cache updated.");
+                    Debug.Log(
+                        "Asset reference patching: cache updated.");
                 }
 
+                // --------------------------------------------------------
+                // Manifest results
+                // --------------------------------------------------------
 
+                manifest
+                    .assetReferencePatching
+                    .rewrittenReferenceCount =
+                        patchResult.RewrittenReferenceCount;
 
-                manifest.assetReferencePatching.rewrittenReferenceCount =
-                    patchResult.RewrittenReferenceCount;
-
-                manifest.assetReferencePatching.removedProxyCount =
-                    patchResult.RemovedProxyCount;
+                manifest
+                    .assetReferencePatching
+                    .removedProxyCount =
+                        patchResult.RemovedProxyCount;
 
                 if (patchResult.RemovedProxyCount > 0)
                 {
-                    var removedPaths = new HashSet<string>(
-                        patchResult.RemovedProxyAssetPaths,
-                        StringComparer.OrdinalIgnoreCase);
+                    var removedPaths =
+                        new HashSet<string>(
+                            patchResult.RemovedProxyAssetPaths,
+                            StringComparer.OrdinalIgnoreCase);
 
                     foreach (var mapping in
                              manifest.assetReferencePatching.mappings)
                     {
                         mapping.proxyRemoved =
-                            removedPaths.Contains(mapping.proxyAssetPath);
+                            removedPaths.Contains(
+                                mapping.proxyAssetPath);
                     }
                 }
             }
 
             if (abManifest == null)
             {
-                Debug.Log("No assetbundle was built.");
-                // This is the best “Unity canceled / failed” signal for this call, but I can't 'fail' the built
-                // if there was just code and no assets. Ideally, treat it as canceled/failed and abort export.
-                // throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
+                Debug.Log(
+                    "No assetbundle was built.");
             }
 
             return assetPaths.Count;
