@@ -291,9 +291,44 @@ namespace stationeers.modding.exporter
             var subDir = Path.Combine(exportFolder, platform);
             Directory.CreateDirectory(subDir);
 
+            IReadOnlyList<BuiltAssetReferencePatch> patches =
+                Array.Empty<BuiltAssetReferencePatch>();
+
+            bool patchingEnabled =
+                StationeersExporterSettings.instance.enableAssetReferencePatching;
+
+            // The PathID resolver builds a temporary probe AssetBundle. Do this
+            // before the real mod build so that the manifest returned by the real
+            // BuildAssetBundles call remains valid for the rest of this method.
+            if (patchingEnabled)
+            {
+                var collectedPatches =
+                    AssetReferencePatchRegistry.Collect();
+
+                var resolvedPatches =
+                    AssetReferencePatchRegistry.Resolve(
+                        collectedPatches);
+
+                patches =
+                    AssetReferencePatchPathIdResolver.Resolve(
+                        resolvedPatches);
+
+                Debug.Log(
+                    $"[AssetReferencePatching] Collected {patches.Count} patch request(s).");
+
+                foreach (var patch in patches)
+                {
+                    Debug.Log(
+                        $"[AssetReferencePatching] " +
+                        $"proxy bundle PathID={patch.ProxyBundlePathId} -> " +
+                        $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
+                }
+            }
+
             AssetBundleManifest abManifest = null;
             try
             {
+                // Keep the real mod build as the final BuildAssetBundles call.
                 abManifest = BuildPipeline.BuildAssetBundles(
                     subDir,
                     BuildAssetBundleOptions.None,
@@ -312,28 +347,12 @@ namespace stationeers.modding.exporter
             }
 
             if (abManifest != null &&
-                StationeersExporterSettings.instance.enableAssetReferencePatching)
+                patchingEnabled &&
+                patches.Count > 0)
             {
-                var resolvedPatches = AssetReferencePatchRegistry.Resolve(
-                    AssetReferencePatchRegistry.Collect()
-                );
-
-                var patches = AssetReferencePatchPathIdResolver.Resolve(
-                    resolvedPatches
-                );
-
-                Debug.Log(
-                    $"[AssetReferencePatching] Collected {patches.Count} patch request(s).");
-
-                foreach (var patch in patches)
-                {
-                    Debug.Log(
-                        $"[AssetReferencePatching] " +
-                        $"proxy bundle PathID={patch.ProxyBundlePathId} -> " +
-                        $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
-                }
-
-                string assetsBundlePath = Path.Combine(subDir, $"{Sanitize(PlayerSettings.productName)}.assets");
+                string assetsBundlePath = Path.Combine(
+                    subDir,
+                    $"{Sanitize(PlayerSettings.productName)}.assets");
 
                 AssetReferenceBundlePatcher.Patch(
                     assetsBundlePath,
@@ -343,7 +362,7 @@ namespace stationeers.modding.exporter
             if (abManifest == null)
             {
                 Debug.Log("No assetbundle was built.");
-                // This is the best “Unity canceled / failed” signal for this call, but I can't 'fail' the built
+                // This is the best  Unity canceled / failed  signal for this call, but I can't 'fail' the built
                 // if there was just code and no assets. Ideally, treat it as canceled/failed and abort export.
                 // throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
             }
@@ -370,7 +389,8 @@ namespace stationeers.modding.exporter
             Debug.Log("Export started");
             exportFolder = options.locationPathName;
 
-            var manifest = new StationeersExportManifest {
+            var manifest = new StationeersExportManifest
+            {
                 unityVersion = Application.unityVersion,
                 productName = PlayerSettings.productName,
                 exportFolder = exportFolder,

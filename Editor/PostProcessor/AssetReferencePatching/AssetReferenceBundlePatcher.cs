@@ -27,11 +27,17 @@ namespace stationeers.modding.exporter
             if (patches.Count == 0)
                 return 0;
 
-            string tempPath =
+            string uncompressedPath =
+                bundlePath + ".patching.uncompressed";
+
+            string packedPath =
                 bundlePath + ".patching";
 
-            if (File.Exists(tempPath))
-                File.Delete(tempPath);
+            if (File.Exists(uncompressedPath))
+                File.Delete(uncompressedPath);
+
+            if (File.Exists(packedPath))
+                File.Delete(packedPath);
 
             var manager = new AssetsManager();
 
@@ -73,19 +79,45 @@ namespace stationeers.modding.exporter
                     .DirectoryInfos[0]
                     .SetNewData(assetsInst.file);
 
-                // For now write LZ4, matching the working PoC.
+                // AssetsTools.NET applies the directory replacers while
+                // writing the modified bundle. Write that result first.
                 using (var writer =
-                       new AssetsFileWriter(tempPath))
+                       new AssetsFileWriter(uncompressedPath))
                 {
-                    bundle.Pack(
-                        writer,
-                        AssetBundleCompressionType.LZ4);
+                    bundle.Write(writer);
                 }
 
+                // Release the original bundle before reopening/replacing it.
                 manager.UnloadAll();
 
+                // Reopen the already-modified bundle and compress it.
+                var modifiedBundle =
+                    new AssetBundleFile();
+
+                try
+                {
+                    using (var stream =
+                           File.OpenRead(uncompressedPath))
+                    {
+                        modifiedBundle.Read(
+                            new AssetsFileReader(stream));
+
+                        using (var writer =
+                               new AssetsFileWriter(packedPath))
+                        {
+                            modifiedBundle.Pack(
+                                writer,
+                                AssetBundleCompressionType.LZ4);
+                        }
+                    }
+                }
+                finally
+                {
+                    modifiedBundle.Close();
+                }
+
                 ReplaceFile(
-                    tempPath,
+                    packedPath,
                     bundlePath);
 
                 Debug.Log(
@@ -99,8 +131,11 @@ namespace stationeers.modding.exporter
             {
                 manager.UnloadAll();
 
-                if (File.Exists(tempPath))
-                    File.Delete(tempPath);
+                if (File.Exists(packedPath))
+                    File.Delete(packedPath);
+
+                if (File.Exists(uncompressedPath))
+                    File.Delete(uncompressedPath);
             }
         }
 
