@@ -119,5 +119,63 @@ namespace stationeers.modding.exporter
 
             return true;
         }
+
+        public static string GetPatchedBundlePath(
+    string patchKey,
+    string bundleFileName)
+        {
+            string cacheDirectory =
+                Path.GetFullPath(
+                    Path.Combine(
+                        "Library",
+                        "StationeersExporter",
+                        "PatchedBundles",
+                        patchKey));
+
+            return Path.Combine(
+                cacheDirectory,
+                bundleFileName);
+        }
+
+        public static bool TryRestorePatchedBundle(
+            string patchKey,
+            string destinationBundlePath)
+        {
+            string cachePath =
+                GetPatchedBundlePath(
+                    patchKey,
+                    Path.GetFileName(destinationBundlePath));
+
+            if (!File.Exists(cachePath))
+                return false;
+
+            Directory.CreateDirectory(
+                Path.GetDirectoryName(destinationBundlePath));
+
+            File.Copy(
+                cachePath,
+                destinationBundlePath,
+                true);
+
+            return true;
+        }
+
+        public static void SavePatchedBundle(
+            string patchKey,
+            string bundlePath)
+        {
+            string cachePath =
+                GetPatchedBundlePath(
+                    patchKey,
+                    Path.GetFileName(bundlePath));
+
+            Directory.CreateDirectory(
+                Path.GetDirectoryName(cachePath));
+
+            File.Copy(
+                bundlePath,
+                cachePath,
+                true);
+        }
     }
 }
