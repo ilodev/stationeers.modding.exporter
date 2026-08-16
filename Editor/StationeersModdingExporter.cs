@@ -403,6 +403,11 @@ namespace stationeers.modding.exporter
                     patchKey,
                     assetsBundlePath);
 
+                AssetReferencePatchCache.SavePatchMetadata(
+                    patchKey,
+                    Path.GetFileName(assetsBundlePath),
+                    patchResult);
+
                 manifest.assetReferencePatching.rewrittenReferenceCount =
                     patchResult.RewrittenReferenceCount;
 

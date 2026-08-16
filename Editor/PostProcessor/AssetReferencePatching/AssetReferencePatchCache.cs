@@ -1,9 +1,10 @@
-using System.IO;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using UnityEngine;
 
 namespace stationeers.modding.exporter
 {
@@ -11,59 +12,12 @@ namespace stationeers.modding.exporter
     {
         private const int PatcherVersion = 1;
 
-        public static string ComputePatchKey(
-            string pristineBundlePath,
-            IReadOnlyList<ResolvedAssetReferencePatch> patches)
+        [Serializable]
+        private sealed class PatchCacheMetadata
         {
-            string bundleHash = ComputeFileHash(pristineBundlePath);
-
-            var mappingText = new StringBuilder();
-
-            foreach (var patch in patches
-                .OrderBy(p => p.ProxyGuid, StringComparer.Ordinal)
-                .ThenBy(p => p.ProxyLocalFileId))
-            {
-                mappingText.Append(patch.ProxyGuid);
-                mappingText.Append('|');
-                mappingText.Append(patch.ProxyLocalFileId);
-                mappingText.Append('|');
-                mappingText.Append(patch.Source.TargetSerializedFile);
-                mappingText.Append('|');
-                mappingText.Append(patch.Source.TargetPathId);
-                mappingText.Append('|');
-                mappingText.Append(patch.Source.TargetTypeId);
-                mappingText.Append('|');
-                mappingText.Append(patch.Source.Cleanup);
-                mappingText.Append('\n');
-            }
-
-            string input =
-                $"v{PatcherVersion}|{bundleHash}|{mappingText}";
-
-            using var sha = SHA256.Create();
-
-            byte[] hash = sha.ComputeHash(
-                Encoding.UTF8.GetBytes(input));
-
-            return ToHex(hash);
-        }
-
-        private static string ComputeFileHash(string path)
-        {
-            using var stream = File.OpenRead(path);
-            using var sha = SHA256.Create();
-
-            return ToHex(sha.ComputeHash(stream));
-        }
-
-        private static string ToHex(byte[] bytes)
-        {
-            var result = new StringBuilder(bytes.Length * 2);
-
-            foreach (byte b in bytes)
-                result.Append(b.ToString("x2"));
-
-            return result.ToString();
+            public int rewrittenReferenceCount;
+            public int removedProxyCount;
+            public List<string> removedProxyAssetPaths = new List<string>();
         }
 
         public static string SavePristineBundle(
@@ -109,8 +63,11 @@ namespace stationeers.modding.exporter
             if (!File.Exists(cachePath))
                 return false;
 
-            Directory.CreateDirectory(
-                Path.GetDirectoryName(bundlePath));
+            string destinationDirectory =
+                Path.GetDirectoryName(bundlePath);
+
+            if (!string.IsNullOrEmpty(destinationDirectory))
+                Directory.CreateDirectory(destinationDirectory);
 
             File.Copy(
                 cachePath,
@@ -120,9 +77,48 @@ namespace stationeers.modding.exporter
             return true;
         }
 
+        public static string ComputePatchKey(
+            string pristineBundlePath,
+            IReadOnlyList<ResolvedAssetReferencePatch> patches)
+        {
+            string bundleHash =
+                ComputeFileHash(pristineBundlePath);
+
+            var mappingText = new StringBuilder();
+
+            foreach (var patch in patches
+                .OrderBy(p => p.ProxyGuid, StringComparer.Ordinal)
+                .ThenBy(p => p.ProxyLocalFileId))
+            {
+                mappingText.Append(patch.ProxyGuid);
+                mappingText.Append('|');
+                mappingText.Append(patch.ProxyLocalFileId);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.TargetSerializedFile);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.TargetPathId);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.TargetTypeId);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.Cleanup);
+                mappingText.Append('\n');
+            }
+
+            string input =
+                $"v{PatcherVersion}|{bundleHash}|{mappingText}";
+
+            using (var sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(
+                    Encoding.UTF8.GetBytes(input));
+
+                return ToHex(hash);
+            }
+        }
+
         public static string GetPatchedBundlePath(
-    string patchKey,
-    string bundleFileName)
+            string patchKey,
+            string bundleFileName)
         {
             string cacheDirectory =
                 Path.GetFullPath(
@@ -149,8 +145,11 @@ namespace stationeers.modding.exporter
             if (!File.Exists(cachePath))
                 return false;
 
-            Directory.CreateDirectory(
-                Path.GetDirectoryName(destinationBundlePath));
+            string destinationDirectory =
+                Path.GetDirectoryName(destinationBundlePath);
+
+            if (!string.IsNullOrEmpty(destinationDirectory))
+                Directory.CreateDirectory(destinationDirectory);
 
             File.Copy(
                 cachePath,
@@ -169,13 +168,75 @@ namespace stationeers.modding.exporter
                     patchKey,
                     Path.GetFileName(bundlePath));
 
-            Directory.CreateDirectory(
-                Path.GetDirectoryName(cachePath));
+            string cacheDirectory =
+                Path.GetDirectoryName(cachePath);
+
+            if (!string.IsNullOrEmpty(cacheDirectory))
+                Directory.CreateDirectory(cacheDirectory);
 
             File.Copy(
                 bundlePath,
                 cachePath,
                 true);
+        }
+
+        public static void SavePatchMetadata(
+            string patchKey,
+            string bundleFileName,
+            AssetReferenceBundlePatchResult result)
+        {
+            string bundlePath =
+                GetPatchedBundlePath(
+                    patchKey,
+                    bundleFileName);
+
+            string metadataPath =
+                bundlePath + ".json";
+
+            string cacheDirectory =
+                Path.GetDirectoryName(metadataPath);
+
+            if (!string.IsNullOrEmpty(cacheDirectory))
+                Directory.CreateDirectory(cacheDirectory);
+
+            var metadata =
+                new PatchCacheMetadata
+                {
+                    rewrittenReferenceCount =
+                        result.RewrittenReferenceCount,
+
+                    removedProxyCount =
+                        result.RemovedProxyCount,
+
+                    removedProxyAssetPaths =
+                        new List<string>(
+                            result.RemovedProxyAssetPaths)
+                };
+
+            File.WriteAllText(
+                metadataPath,
+                JsonUtility.ToJson(metadata, true));
+        }
+
+        private static string ComputeFileHash(string path)
+        {
+            using (var stream = File.OpenRead(path))
+            using (var sha = SHA256.Create())
+            {
+                return ToHex(
+                    sha.ComputeHash(stream));
+            }
+        }
+
+        private static string ToHex(byte[] bytes)
+        {
+            var result =
+                new StringBuilder(bytes.Length * 2);
+
+            foreach (byte b in bytes)
+                result.Append(b.ToString("x2"));
+
+            return result.ToString();
         }
     }
 }
