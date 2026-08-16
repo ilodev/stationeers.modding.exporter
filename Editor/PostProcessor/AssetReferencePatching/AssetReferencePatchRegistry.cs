@@ -60,5 +60,43 @@ namespace stationeers.modding.exporter
                 _patches.Add(patch);
             }
         }
+
+        public static IReadOnlyList<ResolvedAssetReferencePatch> Resolve(IReadOnlyList<AssetReferencePatch> patches)
+        {
+            var resolved =
+                new List<ResolvedAssetReferencePatch>(patches.Count);
+
+            foreach (var patch in patches)
+            {
+                string assetPath =
+                    AssetDatabase.GetAssetPath(patch.ProxyAsset);
+
+                if (string.IsNullOrEmpty(assetPath))
+                {
+                    throw new InvalidOperationException(
+                        $"Proxy asset '{patch.ProxyAsset.name}' " +
+                        "is not a persistent project asset.");
+                }
+
+                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(
+                        patch.ProxyAsset,
+                        out string guid,
+                        out long localFileId))
+                {
+                    throw new InvalidOperationException(
+                        $"Could not resolve GUID/local fileID for " +
+                        $"proxy asset '{assetPath}'.");
+                }
+
+                resolved.Add(
+                    new ResolvedAssetReferencePatch(
+                        patch,
+                        assetPath,
+                        guid,
+                        localFileId));
+            }
+
+            return resolved;
+        }
     }
 }
