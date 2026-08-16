@@ -15,6 +15,7 @@ namespace stationeers.modding.exporter
         public bool enabled;
         public int mappingCount;
         public int rewrittenReferenceCount;
+        public int removedProxyCount;
         public List<AssetReferencePatchManifestEntry> mappings = new();
     }
 
@@ -29,6 +30,7 @@ namespace stationeers.modding.exporter
         public long targetPathId;
         public int targetTypeId;
         public string cleanup;
+        public bool proxyRemoved;
     }
 
     /// <summary>

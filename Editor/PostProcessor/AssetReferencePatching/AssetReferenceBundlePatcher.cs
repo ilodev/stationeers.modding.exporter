@@ -9,7 +9,7 @@ namespace stationeers.modding.exporter
 {
     internal static class AssetReferenceBundlePatcher
     {
-        public static int Patch(
+        public static AssetReferenceBundlePatchResult Patch(
             string bundlePath,
             IReadOnlyList<ResolvedAssetReferencePatch> patches)
         {
@@ -25,7 +25,7 @@ namespace stationeers.modding.exporter
                 throw new ArgumentNullException(nameof(patches));
 
             if (patches.Count == 0)
-                return 0;
+                return AssetReferenceBundlePatchResult.Empty;
 
             string uncompressedPath =
                 bundlePath + ".patching.uncompressed";
@@ -74,12 +74,17 @@ namespace stationeers.modding.exporter
                         assetsInst,
                         builtPatches);
 
-                if (rewritten == 0)
+                var removedProxyAssetPaths =
+                    RemoveUnreferencedProxies(
+                        assetsInst,
+                        builtPatches);
+
+                if (rewritten == 0 && removedProxyAssetPaths.Count == 0)
                 {
                     Debug.Log(
-                        "Asset reference patching: no references rewritten.");
+                        "Asset reference patching: no changes required.");
 
-                    return 0;
+                    return AssetReferenceBundlePatchResult.Empty;
                 }
 
                 // Replace the SerializedFile stored inside the bundle.
@@ -131,9 +136,12 @@ namespace stationeers.modding.exporter
 
                 Debug.Log(
                     $"Asset reference patching complete: " +
-                    $"{rewritten} reference(s) rewritten.");
+                    $"{rewritten} reference(s) rewritten, " +
+                    $"{removedProxyAssetPaths.Count} proxy asset(s) removed.");
 
-                return rewritten;
+                return new AssetReferenceBundlePatchResult(
+                    rewritten,
+                    removedProxyAssetPaths);
             }
             finally
             {
@@ -145,6 +153,47 @@ namespace stationeers.modding.exporter
                 if (File.Exists(uncompressedPath))
                     File.Delete(uncompressedPath);
             }
+        }
+
+
+        private static List<string> RemoveUnreferencedProxies(
+            AssetsFileInstance assetsInstance,
+            IReadOnlyList<BuiltAssetReferencePatch> patches)
+        {
+            var removed = new List<string>();
+            var assets = assetsInstance.file;
+
+            // AssetReferencePPtrRewriter traverses every deserializable object
+            // in this SerializedFile and rewrites every local PPtr whose
+            // PathID matches a registered proxy. If Rewrite() returns
+            // successfully, no serialized local PPtr to those proxy PathIDs
+            // remains. At that point a RemoveIfUnreferenced proxy can be
+            // removed safely from the file.
+            foreach (var patch in patches)
+            {
+                if (patch.Cleanup !=
+                    AssetReferencePatchCleanup.RemoveIfUnreferenced)
+                {
+                    continue;
+                }
+
+                var proxyInfo =
+                    assets.GetAssetInfo(
+                        patch.ProxyBundlePathId);
+
+                if (proxyInfo == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Proxy asset '{patch.Source.ProxyAssetPath}' " +
+                        $"with PathID {patch.ProxyBundlePathId} " +
+                        "was not found while applying cleanup.");
+                }
+
+                proxyInfo.SetRemoved();
+                removed.Add(patch.Source.ProxyAssetPath);
+            }
+
+            return removed;
         }
 
         private static IReadOnlyList<BuiltAssetReferencePatch>

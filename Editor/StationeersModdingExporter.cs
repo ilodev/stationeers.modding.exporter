@@ -383,10 +383,30 @@ namespace stationeers.modding.exporter
                     subDir,
                     $"{Sanitize(PlayerSettings.productName)}.assets");
 
-                manifest.assetReferencePatching.rewrittenReferenceCount =
+                var patchResult =
                     AssetReferenceBundlePatcher.Patch(
                         assetsBundlePath,
                         patches);
+
+                manifest.assetReferencePatching.rewrittenReferenceCount =
+                    patchResult.RewrittenReferenceCount;
+
+                manifest.assetReferencePatching.removedProxyCount =
+                    patchResult.RemovedProxyCount;
+
+                if (patchResult.RemovedProxyCount > 0)
+                {
+                    var removedPaths = new HashSet<string>(
+                        patchResult.RemovedProxyAssetPaths,
+                        StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var mapping in
+                             manifest.assetReferencePatching.mappings)
+                    {
+                        mapping.proxyRemoved =
+                            removedPaths.Contains(mapping.proxyAssetPath);
+                    }
+                }
             }
 
             if (abManifest == null)
