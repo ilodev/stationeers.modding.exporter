@@ -7,6 +7,31 @@ using UnityEngine;
 namespace stationeers.modding.exporter
 {
     /// <summary>
+    /// Asset-reference post-processing details recorded for an export.
+    /// </summary>
+    [Serializable]
+    public sealed class AssetReferencePatchingManifest
+    {
+        public bool enabled;
+        public int mappingCount;
+        public int rewrittenReferenceCount;
+        public List<AssetReferencePatchManifestEntry> mappings = new();
+    }
+
+    /// <summary>
+    /// One proxy-to-external-asset mapping supplied by a patch provider.
+    /// </summary>
+    [Serializable]
+    public sealed class AssetReferencePatchManifestEntry
+    {
+        public string proxyAssetPath;
+        public string targetSerializedFile;
+        public long targetPathId;
+        public int targetTypeId;
+        public string cleanup;
+    }
+
+    /// <summary>
     /// Serializable record of the most recent export.
     /// </summary>
     /// <remarks>
@@ -104,6 +129,11 @@ namespace stationeers.modding.exporter
         /// Count of scenes assigned to the bundle.
         /// </summary>
         public int scenesCount;
+
+        /// <summary>
+        /// Asset-reference patching configuration and results for this export.
+        /// </summary>
+        public AssetReferencePatchingManifest assetReferencePatching = new();
 
         /// <summary>
         /// Warnings collected during export (missing files, skipped items, exceptions, etc).

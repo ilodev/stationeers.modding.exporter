@@ -68,15 +68,6 @@ namespace stationeers.modding.exporter
                         assetsInst,
                         patches);
 
-                foreach (var patch in builtPatches)
-                {
-                    Debug.Log(
-                        $"[AssetReferencePatching] " +
-                        $"{patch.Source.ProxyAssetPath} -> " +
-                        $"local PathID={patch.ProxyBundlePathId} -> " +
-                        $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
-                }
-
                 int rewritten =
                     AssetReferencePPtrRewriter.Rewrite(
                         manager,
@@ -86,8 +77,7 @@ namespace stationeers.modding.exporter
                 if (rewritten == 0)
                 {
                     Debug.Log(
-                        $"[AssetReferencePatching] " +
-                        $"No matching PPtrs found in '{bundlePath}'.");
+                        "Asset reference patching: no references rewritten.");
 
                     return 0;
                 }
@@ -140,9 +130,8 @@ namespace stationeers.modding.exporter
                 File.Delete(uncompressedPath);
 
                 Debug.Log(
-                    $"[AssetReferencePatching] " +
-                    $"Rewrote {rewritten} PPtr(s) in " +
-                    $"'{Path.GetFileName(bundlePath)}'.");
+                    $"Asset reference patching complete: " +
+                    $"{rewritten} reference(s) rewritten.");
 
                 return rewritten;
             }

@@ -297,6 +297,8 @@ namespace stationeers.modding.exporter
             bool patchingEnabled =
                 StationeersExporterSettings.instance.enableAssetReferencePatching;
 
+            manifest.assetReferencePatching.enabled = patchingEnabled;
+
             if (patchingEnabled)
             {
                 var collectedPatches =
@@ -306,16 +308,23 @@ namespace stationeers.modding.exporter
                     AssetReferencePatchRegistry.Resolve(
                         collectedPatches);
 
-                Debug.Log(
-                    $"[AssetReferencePatching] Collected {patches.Count} patch request(s).");
+                manifest.assetReferencePatching.mappingCount = patches.Count;
 
                 foreach (var patch in patches)
                 {
-                    Debug.Log(
-                        $"[AssetReferencePatching] " +
-                        $"{patch.ProxyAssetPath} -> " +
-                        $"{patch.Source.TargetSerializedFile}/{patch.Source.TargetPathId}");
+                    manifest.assetReferencePatching.mappings.Add(
+                        new AssetReferencePatchManifestEntry
+                        {
+                            proxyAssetPath = patch.ProxyAssetPath,
+                            targetSerializedFile = patch.Source.TargetSerializedFile,
+                            targetPathId = patch.Source.TargetPathId,
+                            targetTypeId = patch.Source.TargetTypeId,
+                            cleanup = patch.Source.Cleanup.ToString()
+                        });
                 }
+
+                Debug.Log(
+                    $"Asset reference patching: {patches.Count} mapping(s).");
             }
 
             AssetBundleManifest abManifest = null;
@@ -374,9 +383,10 @@ namespace stationeers.modding.exporter
                     subDir,
                     $"{Sanitize(PlayerSettings.productName)}.assets");
 
-                AssetReferenceBundlePatcher.Patch(
-                    assetsBundlePath,
-                    patches);
+                manifest.assetReferencePatching.rewrittenReferenceCount =
+                    AssetReferenceBundlePatcher.Patch(
+                        assetsBundlePath,
+                        patches);
             }
 
             if (abManifest == null)
