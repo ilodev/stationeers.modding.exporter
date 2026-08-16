@@ -311,6 +311,24 @@ namespace stationeers.modding.exporter
                 throw;
             }
 
+            if (abManifest != null &&
+                StationeersExporterSettings.instance.enableAssetReferencePatching)
+            {
+                var patches = AssetReferencePatchRegistry.Collect();
+
+                Debug.Log(
+                    $"[AssetReferencePatching] Collected {patches.Count} patch request(s).");
+
+                foreach (var patch in patches)
+                {
+                    Debug.Log(
+                        $"[AssetReferencePatching] " +
+                        $"{patch.ProxyAsset.name} -> " +
+                        $"{patch.TargetSerializedFile}/{patch.TargetPathId} " +
+                        $"(typeId={patch.TargetTypeId}, cleanup={patch.Cleanup})");
+                }
+            }
+
             if (abManifest == null)
             {
                 Debug.Log("No assetbundle was built.");
