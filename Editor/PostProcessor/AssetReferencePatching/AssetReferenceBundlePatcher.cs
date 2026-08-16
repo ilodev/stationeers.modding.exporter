@@ -11,7 +11,7 @@ namespace stationeers.modding.exporter
     {
         public static int Patch(
             string bundlePath,
-            IReadOnlyList<BuiltAssetReferencePatch> patches)
+            IReadOnlyList<ResolvedAssetReferencePatch> patches)
         {
             if (string.IsNullOrEmpty(bundlePath))
                 throw new ArgumentNullException(nameof(bundlePath));
@@ -59,11 +59,29 @@ namespace stationeers.modding.exporter
                         0,
                         false);
 
+                // Resolve PathIDs from the REAL bundle, not from a separate
+                // probe bundle. The build map makes every registered proxy an
+                // explicit root so it appears in AssetBundle.m_Container.
+                var builtPatches =
+                    ResolveBuiltPatches(
+                        manager,
+                        assetsInst,
+                        patches);
+
+                foreach (var patch in builtPatches)
+                {
+                    Debug.Log(
+                        $"[AssetReferencePatching] " +
+                        $"{patch.Source.ProxyAssetPath} -> " +
+                        $"local PathID={patch.ProxyBundlePathId} -> " +
+                        $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
+                }
+
                 int rewritten =
                     AssetReferencePPtrRewriter.Rewrite(
                         manager,
                         assetsInst,
-                        patches);
+                        builtPatches);
 
                 if (rewritten == 0)
                 {
@@ -79,46 +97,47 @@ namespace stationeers.modding.exporter
                     .DirectoryInfos[0]
                     .SetNewData(assetsInst.file);
 
-                // AssetsTools.NET applies the directory replacers while
-                // writing the modified bundle. Write that result first.
+                // AssetsTools.NET applies the queued object/metadata changes
+                // when Write() creates the modified uncompressed bundle.
                 using (var writer =
                        new AssetsFileWriter(uncompressedPath))
                 {
                     bundle.Write(writer);
                 }
 
-                // Release the original bundle before reopening/replacing it.
                 manager.UnloadAll();
 
-                // Reopen the already-modified bundle and compress it.
+                // Reopen the already-modified bundle, then compress it.
+                // AssetBundleFile keeps reading from the AssetsFileReader during
+                // Pack(), so the input stream must remain open until packing is
+                // complete.
                 var modifiedBundle =
                     new AssetBundleFile();
 
-                try
+                using (var stream =
+                       File.OpenRead(uncompressedPath))
                 {
-                    using (var stream =
-                           File.OpenRead(uncompressedPath))
-                    {
-                        modifiedBundle.Read(
-                            new AssetsFileReader(stream));
+                    var reader =
+                        new AssetsFileReader(stream);
 
-                        using (var writer =
-                               new AssetsFileWriter(packedPath))
-                        {
-                            modifiedBundle.Pack(
-                                writer,
-                                AssetBundleCompressionType.LZ4);
-                        }
+                    modifiedBundle.Read(reader);
+
+                    using (var writer =
+                           new AssetsFileWriter(packedPath))
+                    {
+                        modifiedBundle.Pack(
+                            writer,
+                            AssetBundleCompressionType.LZ4);
                     }
-                }
-                finally
-                {
+
                     modifiedBundle.Close();
                 }
 
                 ReplaceFile(
                     packedPath,
                     bundlePath);
+
+                File.Delete(uncompressedPath);
 
                 Debug.Log(
                     $"[AssetReferencePatching] " +
@@ -137,6 +156,92 @@ namespace stationeers.modding.exporter
                 if (File.Exists(uncompressedPath))
                     File.Delete(uncompressedPath);
             }
+        }
+
+        private static IReadOnlyList<BuiltAssetReferencePatch>
+            ResolveBuiltPatches(
+                AssetsManager manager,
+                AssetsFileInstance assetsInstance,
+                IReadOnlyList<ResolvedAssetReferencePatch> patches)
+        {
+            var bundleAssets =
+                assetsInstance.file.GetAssetsOfType(
+                    AssetClassID.AssetBundle);
+
+            if (bundleAssets.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "AssetBundle SerializedFile contains no AssetBundle object.");
+            }
+
+            var bundleField =
+                manager.GetBaseField(
+                    assetsInstance,
+                    bundleAssets[0]);
+
+            var container =
+                bundleField["m_Container.Array"];
+
+            var pathIdsByAssetPath =
+                new Dictionary<string, long>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var entry in container.Children)
+            {
+                string assetPath =
+                    entry[0].AsString;
+
+                var assetPPtr =
+                    entry[1]["asset"];
+
+                int fileId =
+                    assetPPtr["m_FileID"].AsInt;
+
+                long pathId =
+                    assetPPtr["m_PathID"].AsLong;
+
+                if (fileId != 0)
+                    continue;
+
+                pathIdsByAssetPath[
+                    NormalizeAssetPath(assetPath)] = pathId;
+            }
+
+            var result =
+                new List<BuiltAssetReferencePatch>(patches.Count);
+
+            foreach (var patch in patches)
+            {
+                string key =
+                    NormalizeAssetPath(patch.ProxyAssetPath);
+
+                if (!pathIdsByAssetPath.TryGetValue(
+                        key,
+                        out long pathId))
+                {
+                    throw new InvalidOperationException(
+                        $"Registered proxy asset '{patch.ProxyAssetPath}' " +
+                        "was not found in the real AssetBundle m_Container. " +
+                        "The proxy must be included as an explicit root of " +
+                        "the assets bundle before patching.");
+                }
+
+                result.Add(
+                    new BuiltAssetReferencePatch(
+                        patch,
+                        pathId));
+            }
+
+            return result;
+        }
+
+        private static string NormalizeAssetPath(
+            string path)
+        {
+            return (path ?? string.Empty)
+                .Replace('\\', '/')
+                .Trim()
+                .ToLowerInvariant();
         }
 
         private static void ReplaceFile(

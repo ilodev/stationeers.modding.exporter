@@ -291,27 +291,20 @@ namespace stationeers.modding.exporter
             var subDir = Path.Combine(exportFolder, platform);
             Directory.CreateDirectory(subDir);
 
-            IReadOnlyList<BuiltAssetReferencePatch> patches =
-                Array.Empty<BuiltAssetReferencePatch>();
+            IReadOnlyList<ResolvedAssetReferencePatch> patches =
+                Array.Empty<ResolvedAssetReferencePatch>();
 
             bool patchingEnabled =
                 StationeersExporterSettings.instance.enableAssetReferencePatching;
 
-            // The PathID resolver builds a temporary probe AssetBundle. Do this
-            // before the real mod build so that the manifest returned by the real
-            // BuildAssetBundles call remains valid for the rest of this method.
             if (patchingEnabled)
             {
                 var collectedPatches =
                     AssetReferencePatchRegistry.Collect();
 
-                var resolvedPatches =
+                patches =
                     AssetReferencePatchRegistry.Resolve(
                         collectedPatches);
-
-                patches =
-                    AssetReferencePatchPathIdResolver.Resolve(
-                        resolvedPatches);
 
                 Debug.Log(
                     $"[AssetReferencePatching] Collected {patches.Count} patch request(s).");
@@ -320,19 +313,40 @@ namespace stationeers.modding.exporter
                 {
                     Debug.Log(
                         $"[AssetReferencePatching] " +
-                        $"proxy bundle PathID={patch.ProxyBundlePathId} -> " +
-                        $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
+                        $"{patch.ProxyAssetPath} -> " +
+                        $"{patch.Source.TargetSerializedFile}/{patch.Source.TargetPathId}");
                 }
             }
 
             AssetBundleManifest abManifest = null;
             try
             {
-                // Keep the real mod build as the final BuildAssetBundles call.
-                abManifest = BuildPipeline.BuildAssetBundles(
-                    subDir,
-                    BuildAssetBundleOptions.None,
-                    BuildTarget.StandaloneWindows);
+                if (patchingEnabled && patches.Count > 0)
+                {
+                    // Include each registered proxy as an explicit root of the
+                    // REAL assets bundle. This lets the post-processor obtain
+                    // the proxy's actual PathID from AssetBundle.m_Container
+                    // without relying on a separate probe bundle.
+                    var buildMap =
+                        AssetReferencePatchBuildMap.Create(
+                            Sanitize(PlayerSettings.productName),
+                            assetPaths,
+                            scenePaths,
+                            patches);
+
+                    abManifest = BuildPipeline.BuildAssetBundles(
+                        subDir,
+                        buildMap,
+                        BuildAssetBundleOptions.None,
+                        BuildTarget.StandaloneWindows);
+                }
+                else
+                {
+                    abManifest = BuildPipeline.BuildAssetBundles(
+                        subDir,
+                        BuildAssetBundleOptions.None,
+                        BuildTarget.StandaloneWindows);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -362,7 +376,7 @@ namespace stationeers.modding.exporter
             if (abManifest == null)
             {
                 Debug.Log("No assetbundle was built.");
-                // This is the best  Unity canceled / failed  signal for this call, but I can't 'fail' the built
+                // This is the best “Unity canceled / failed” signal for this call, but I can't 'fail' the built
                 // if there was just code and no assets. Ideally, treat it as canceled/failed and abort export.
                 // throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
             }
