@@ -383,6 +383,10 @@ namespace stationeers.modding.exporter
                     subDir,
                     $"{Sanitize(PlayerSettings.productName)}.assets");
 
+                AssetReferencePatchCache.SavePristineBundle(
+                    assetsBundlePath,
+                    platform);
+
                 var patchResult =
                     AssetReferenceBundlePatcher.Patch(
                         assetsBundlePath,
