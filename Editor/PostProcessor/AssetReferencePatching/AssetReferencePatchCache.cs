@@ -239,9 +239,9 @@ namespace stationeers.modding.exporter
             return result.ToString();
         }
         public static bool TryLoadPatchMetadata(
-    string patchKey,
-    string bundleFileName,
-    out AssetReferenceBundlePatchResult result)
+            string patchKey,
+            string bundleFileName,
+            out AssetReferenceBundlePatchResult result)
         {
             string bundlePath =
                 GetPatchedBundlePath(
@@ -271,6 +271,35 @@ namespace stationeers.modding.exporter
                 metadata.rewrittenReferenceCount,
                 metadata.removedProxyAssetPaths);
 
+            return true;
+        }
+
+        public static bool TryRestorePatchedBundleWithMetadata(
+            string patchKey,
+            string destinationBundlePath,
+            out AssetReferenceBundlePatchResult result)
+        {
+            result = null;
+
+            string bundleFileName =
+                Path.GetFileName(destinationBundlePath);
+
+            if (!TryLoadPatchMetadata(
+                    patchKey,
+                    bundleFileName,
+                    out var cachedResult))
+            {
+                return false;
+            }
+
+            if (!TryRestorePatchedBundle(
+                    patchKey,
+                    destinationBundlePath))
+            {
+                return false;
+            }
+
+            result = cachedResult;
             return true;
         }
     }
