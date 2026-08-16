@@ -306,5 +306,56 @@ namespace stationeers.modding.exporter
             if (Directory.Exists(cacheRoot))
                 Directory.Delete(cacheRoot, true);
         }
+
+        private static string GetPristineCachePath(
+            string bundleFileName,
+            string platform)
+        {
+            return Path.GetFullPath(
+                Path.Combine(
+                    "Library",
+                    "StationeersExporter",
+                    "PristineBundles",
+                    platform,
+                    bundleFileName));
+        }
+
+        public static bool SavePristineBundleIfChanged(
+            string bundlePath,
+            string platform,
+            string unityBundleHash)
+        {
+            string cachePath =
+                GetPristineCachePath(
+                    Path.GetFileName(bundlePath),
+                    platform);
+
+            string hashPath =
+                cachePath + ".hash";
+
+            if (File.Exists(cachePath) &&
+                File.Exists(hashPath) &&
+                string.Equals(
+                    File.ReadAllText(hashPath),
+                    unityBundleHash,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            Directory.CreateDirectory(
+                Path.GetDirectoryName(cachePath));
+
+            File.Copy(
+                bundlePath,
+                cachePath,
+                true);
+
+            File.WriteAllText(
+                hashPath,
+                unityBundleHash);
+
+            return true;
+        }
     }
 }

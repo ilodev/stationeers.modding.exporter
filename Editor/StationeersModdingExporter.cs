@@ -455,9 +455,10 @@ namespace stationeers.modding.exporter
                 // IMPORTANT:
                 // Save this BEFORE patching. This is Unity's pristine output
                 // and will be restored before the next incremental build.
-                AssetReferencePatchCache.SavePristineBundle(
+                AssetReferencePatchCache.SavePristineBundleIfChanged(
                     assetsBundlePath,
-                    platform);
+                    platform,
+                    unityBundleHash);
 
                 string patchKey =
                     AssetReferencePatchCache.ComputePatchKey(
