@@ -339,9 +339,9 @@ namespace stationeers.modding.exporter
                     // Restore the last pristine Unity-built bundle before running
                     // Unity's incremental AssetBundle build. This prevents Unity
                     // from seeing/reusing our post-processed output as its input.
-                    AssetReferencePatchCache.RestorePristineBundle(
-                        assetsBundlePath,
-                        platform);
+                    bool restoredPristine = AssetReferencePatchCache.RestorePristineBundle(
+                            assetsBundlePath,
+                            platform);
 
                     // Include each registered proxy as an explicit root of the
                     // REAL assets bundle. This lets the post-processor obtain
@@ -353,6 +353,10 @@ namespace stationeers.modding.exporter
                             assetPaths,
                             scenePaths,
                             patches);
+
+                    var buildOptions = restoredPristine
+                            ? BuildAssetBundleOptions.None
+                            : BuildAssetBundleOptions.ForceRebuildAssetBundle;
 
                     abManifest = BuildPipeline.BuildAssetBundles(
                         subDir,
