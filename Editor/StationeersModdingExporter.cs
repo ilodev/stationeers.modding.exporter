@@ -314,9 +314,14 @@ namespace stationeers.modding.exporter
             if (abManifest != null &&
                 StationeersExporterSettings.instance.enableAssetReferencePatching)
             {
-                var patches = AssetReferencePatchRegistry.Resolve(
+                var resolvedPatches = AssetReferencePatchRegistry.Resolve(
                     AssetReferencePatchRegistry.Collect()
                 );
+
+                var patches = AssetReferencePatchPathIdResolver.Resolve(
+                    resolvedPatches
+                );
+
                 Debug.Log(
                     $"[AssetReferencePatching] Collected {patches.Count} patch request(s).");
 
@@ -324,10 +329,8 @@ namespace stationeers.modding.exporter
                 {
                     Debug.Log(
                         $"[AssetReferencePatching] " +
-                        $"{patch.ProxyAssetPath} " +
-                        $"[{patch.ProxyGuid}:{patch.ProxyLocalFileId}] -> " +
-                        $"{patch.Source.TargetSerializedFile}/" +
-                        $"{patch.Source.TargetPathId}");
+                        $"proxy bundle PathID={patch.ProxyBundlePathId} -> " +
+                        $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
                 }
             }
 
