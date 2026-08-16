@@ -384,14 +384,24 @@ namespace stationeers.modding.exporter
                 patchingEnabled &&
                 patches.Count > 0)
             {
-                AssetReferencePatchCache.SavePristineBundle(
-                    assetsBundlePath,
-                    platform);
+                string pristineBundlePath =
+                    AssetReferencePatchCache.SavePristineBundle(
+                        assetsBundlePath,
+                        platform);
+
+                string patchKey =
+                    AssetReferencePatchCache.ComputePatchKey(
+                        pristineBundlePath,
+                        patches);
 
                 var patchResult =
                     AssetReferenceBundlePatcher.Patch(
                         assetsBundlePath,
                         patches);
+
+                AssetReferencePatchCache.SavePatchedBundle(
+                    patchKey,
+                    assetsBundlePath);
 
                 manifest.assetReferencePatching.rewrittenReferenceCount =
                     patchResult.RewrittenReferenceCount;
