@@ -327,11 +327,22 @@ namespace stationeers.modding.exporter
                     $"Asset reference patching: {patches.Count} mapping(s).");
             }
 
+            string assetsBundlePath = Path.Combine(
+                subDir,
+                $"{Sanitize(PlayerSettings.productName)}.assets");
+
             AssetBundleManifest abManifest = null;
             try
             {
                 if (patchingEnabled && patches.Count > 0)
                 {
+                    // Restore the last pristine Unity-built bundle before running
+                    // Unity's incremental AssetBundle build. This prevents Unity
+                    // from seeing/reusing our post-processed output as its input.
+                    AssetReferencePatchCache.RestorePristineBundle(
+                        assetsBundlePath,
+                        platform);
+
                     // Include each registered proxy as an explicit root of the
                     // REAL assets bundle. This lets the post-processor obtain
                     // the proxy's actual PathID from AssetBundle.m_Container
@@ -343,16 +354,10 @@ namespace stationeers.modding.exporter
                             scenePaths,
                             patches);
 
-                    // Patching mutates Unity's built bundle after the build pipeline
-                    // has finished. Unity's incremental AssetBundle cache does not
-                    // know about those mutations, so an unchanged normal export can
-                    // otherwise reuse our already-patched bundle on the next build.
-                    // Force a fresh Unity serialization whenever reference patching
-                    // is enabled.
                     abManifest = BuildPipeline.BuildAssetBundles(
                         subDir,
                         buildMap,
-                        BuildAssetBundleOptions.ForceRebuildAssetBundle,
+                        BuildAssetBundleOptions.None,
                         BuildTarget.StandaloneWindows);
                 }
                 else
@@ -379,10 +384,6 @@ namespace stationeers.modding.exporter
                 patchingEnabled &&
                 patches.Count > 0)
             {
-                string assetsBundlePath = Path.Combine(
-                    subDir,
-                    $"{Sanitize(PlayerSettings.productName)}.assets");
-
                 AssetReferencePatchCache.SavePristineBundle(
                     assetsBundlePath,
                     platform);

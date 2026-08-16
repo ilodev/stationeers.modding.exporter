@@ -30,5 +30,32 @@ namespace stationeers.modding.exporter
 
             return cachePath;
         }
+
+        public static bool RestorePristineBundle(
+            string bundlePath,
+            string platform)
+        {
+            string cachePath =
+                Path.GetFullPath(
+                    Path.Combine(
+                        "Library",
+                        "StationeersExporter",
+                        "PristineBundles",
+                        platform,
+                        Path.GetFileName(bundlePath)));
+
+            if (!File.Exists(cachePath))
+                return false;
+
+            Directory.CreateDirectory(
+                Path.GetDirectoryName(bundlePath));
+
+            File.Copy(
+                cachePath,
+                bundlePath,
+                true);
+
+            return true;
+        }
     }
 }
