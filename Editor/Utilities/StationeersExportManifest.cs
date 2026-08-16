@@ -16,6 +16,7 @@ namespace stationeers.modding.exporter
         public int mappingCount;
         public int rewrittenReferenceCount;
         public int removedProxyCount;
+        public bool cacheHit;
         public List<AssetReferencePatchManifestEntry> mappings = new();
     }
 

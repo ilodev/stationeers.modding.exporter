@@ -401,10 +401,13 @@ namespace stationeers.modding.exporter
                         assetsBundlePath,
                         out patchResult))
                 {
+                    manifest.assetReferencePatching.cacheHit = true;
+
                     Debug.Log("Asset reference patching: cache hit.");
                 }
                 else
                 {
+                    manifest.assetReferencePatching.cacheHit = false;
                     patchResult =
                         AssetReferenceBundlePatcher.Patch(
                             assetsBundlePath,
