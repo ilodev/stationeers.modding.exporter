@@ -334,10 +334,16 @@ namespace stationeers.modding.exporter
                             scenePaths,
                             patches);
 
+                    // Patching mutates Unity's built bundle after the build pipeline
+                    // has finished. Unity's incremental AssetBundle cache does not
+                    // know about those mutations, so an unchanged normal export can
+                    // otherwise reuse our already-patched bundle on the next build.
+                    // Force a fresh Unity serialization whenever reference patching
+                    // is enabled.
                     abManifest = BuildPipeline.BuildAssetBundles(
                         subDir,
                         buildMap,
-                        BuildAssetBundleOptions.None,
+                        BuildAssetBundleOptions.ForceRebuildAssetBundle,
                         BuildTarget.StandaloneWindows);
                 }
                 else
