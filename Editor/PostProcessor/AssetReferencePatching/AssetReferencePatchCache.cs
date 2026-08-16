@@ -1,9 +1,71 @@
 using System.IO;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace stationeers.modding.exporter
 {
     internal static class AssetReferencePatchCache
     {
+        private const int PatcherVersion = 1;
+
+        public static string ComputePatchKey(
+            string pristineBundlePath,
+            IReadOnlyList<ResolvedAssetReferencePatch> patches)
+        {
+            string bundleHash = ComputeFileHash(pristineBundlePath);
+
+            var mappingText = new StringBuilder();
+
+            foreach (var patch in patches
+                .OrderBy(p => p.ProxyGuid, StringComparer.Ordinal)
+                .ThenBy(p => p.ProxyLocalFileId))
+            {
+                mappingText.Append(patch.ProxyGuid);
+                mappingText.Append('|');
+                mappingText.Append(patch.ProxyLocalFileId);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.TargetSerializedFile);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.TargetPathId);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.TargetTypeId);
+                mappingText.Append('|');
+                mappingText.Append(patch.Source.Cleanup);
+                mappingText.Append('\n');
+            }
+
+            string input =
+                $"v{PatcherVersion}|{bundleHash}|{mappingText}";
+
+            using var sha = SHA256.Create();
+
+            byte[] hash = sha.ComputeHash(
+                Encoding.UTF8.GetBytes(input));
+
+            return ToHex(hash);
+        }
+
+        private static string ComputeFileHash(string path)
+        {
+            using var stream = File.OpenRead(path);
+            using var sha = SHA256.Create();
+
+            return ToHex(sha.ComputeHash(stream));
+        }
+
+        private static string ToHex(byte[] bytes)
+        {
+            var result = new StringBuilder(bytes.Length * 2);
+
+            foreach (byte b in bytes)
+                result.Append(b.ToString("x2"));
+
+            return result.ToString();
+        }
+
         public static string SavePristineBundle(
             string bundlePath,
             string platform)
