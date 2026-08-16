@@ -332,6 +332,12 @@ namespace stationeers.modding.exporter
                         $"proxy bundle PathID={patch.ProxyBundlePathId} -> " +
                         $"{patch.TargetSerializedFile}/{patch.TargetPathId}");
                 }
+
+                string assetsBundlePath = Path.Combine(subDir, $"{Sanitize(PlayerSettings.productName)}.assets");
+
+                AssetReferenceBundlePatcher.Patch(
+                    assetsBundlePath,
+                    patches);
             }
 
             if (abManifest == null)
