@@ -113,10 +113,12 @@ namespace stationeers.modding.exporter
                         // Normal exporter builds restore the pristine bundle
                         // before Unity's incremental build, so this state is not
                         // required for the production path.
+                        #if DEVELOPMENT_BUILD
                         Debug.Log(
                             $"MonoScript reference patching: proxy " +
                             $"'{patch.ProxyIdentity}' is present but has no " +
                             $"local serialized references; skipping.");
+                        #endif
 
                         continue;
                     }
@@ -181,6 +183,7 @@ namespace stationeers.modding.exporter
 
                     matchedMappings++;
 
+                    #if DEVELOPMENT_BUILD
                     Debug.Log(
                         $"MonoScript reference patching: " +
                         $"'{patch.ProxyIdentity}' -> " +
@@ -189,13 +192,16 @@ namespace stationeers.modding.exporter
                         $"{patch.Source.TargetPathId}; " +
                         $"ScriptTypes[{scriptTypeIndex}], " +
                         $"{localBehaviourInfos.Count} MonoBehaviour(s).");
+                    #endif
                 }
 
                 if (rewrittenScriptTypes == 0 &&
                     rewrittenBehaviours == 0)
                 {
+                    #if DEVELOPMENT_BUILD
                     Debug.Log(
                         "MonoScript reference patching: no changes required.");
+                    #endif
 
                     return new MonoScriptReferenceBundlePatchResult(
                         matchedMappings,
@@ -243,11 +249,13 @@ namespace stationeers.modding.exporter
 
                 DeleteIfExists(uncompressedPath);
 
+                #if DEVELOPMENT_BUILD
                 Debug.Log(
                     $"MonoScript reference patching complete: " +
                     $"{matchedMappings} mapping(s), " +
                     $"{rewrittenScriptTypes} ScriptTypes entry/entries, " +
                     $"{rewrittenBehaviours} MonoBehaviour(s) rewritten.");
+                #endif
 
                 return new MonoScriptReferenceBundlePatchResult(
                     matchedMappings,

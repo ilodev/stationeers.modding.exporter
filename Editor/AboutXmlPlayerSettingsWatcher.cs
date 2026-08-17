@@ -127,9 +127,11 @@ namespace stationeers.modding.exporter
                 // Reimport to update TextAsset
                 AssetDatabase.ImportAsset(aboutPath, ImportAssetOptions.ForceUpdate);
 
+                #if DEVELOPMENT_BUILD
                 Debug.Log(string.Format(
                     "[About Watcher] Updated {0} -> Name=\"{1}\", Author=\"{2}\", Version=\"{3}\"",
                     aboutPath, product, company, version));
+                #endif
             }
             catch (System.Exception ex)
             {

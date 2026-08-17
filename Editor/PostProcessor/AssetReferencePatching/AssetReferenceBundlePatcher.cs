@@ -81,8 +81,10 @@ namespace stationeers.modding.exporter
 
                 if (rewritten == 0 && removedProxyAssetPaths.Count == 0)
                 {
+                    #if DEVELOPMENT_BUILD
                     Debug.Log(
                         "Asset reference patching: no changes required.");
+                    #endif
 
                     return AssetReferenceBundlePatchResult.Empty;
                 }
@@ -134,10 +136,12 @@ namespace stationeers.modding.exporter
 
                 File.Delete(uncompressedPath);
 
+                #if DEVELOPMENT_BUILD
                 Debug.Log(
                     $"Asset reference patching complete: " +
                     $"{rewritten} reference(s) rewritten, " +
                     $"{removedProxyAssetPaths.Count} proxy asset(s) removed.");
+                #endif
 
                 return new AssetReferenceBundlePatchResult(
                     rewritten,

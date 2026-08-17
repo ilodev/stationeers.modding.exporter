@@ -63,7 +63,9 @@ namespace stationeers.modding.exporter
 
             if (File.Exists(savePath))
             {
+                #if DEVELOPMENT_BUILD
                 Debug.Log(savePath + " exists, aborting.");
+                #endif
                 return;
             }
 

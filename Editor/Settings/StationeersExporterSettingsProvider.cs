@@ -191,7 +191,9 @@ namespace stationeers.modding.exporter
                 TagLayerUtility.ApplyRequiredSettingsWithPrompt();
 
             AssetDatabase.Refresh();
+            #if DEVELOPMENT_BUILD
             Debug.Log("Sanity check: create selected completed.");
+            #endif
         }
 
         private static bool HasEntryPointScript()

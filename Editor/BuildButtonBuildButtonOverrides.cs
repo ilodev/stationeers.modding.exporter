@@ -105,7 +105,9 @@ namespace stationeers.modding.exporter
         /// <param name="options"></param>
         private static void OnBuildButtonPressed(BuildPlayerOptions options)
         {
+            #if DEVELOPMENT_BUILD
             Debug.Log($"Saving at {options.locationPathName}");
+            #endif
             if (!ExportPreflight.SaveAllWithPrompts())
                 return; // user canceled or something failed to save
 
