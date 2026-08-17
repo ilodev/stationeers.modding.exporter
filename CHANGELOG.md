@@ -2,12 +2,20 @@
 
 All notable changes to this package will be documented in this file. The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [1.0.56] - 2026-08-16
+## [1.0.7] - 2026-08-16
+
+
+## Added
+Ability to patch the created assetbundle to modify and remove contents as a post processor that other
+packages can register. This was introduced to support an authoring package that remove the need of shims
+in the loader, allowing to inject editor components/materials/gameobjects/etc and replace them with their
+corresponding game assets in the bundle.
+
+## [1.0.6] - 2026-08-16
 
 
 ### Added
-Now About.xml editor in Windows > Stationeers Modding Tools > Mod Metadata Editor.
-
+About.xml editor in Windows > Stationeers Modding Tools > Mod Metadata Editor.
 
 ## [1.0.5] - 2026-07-22
 
