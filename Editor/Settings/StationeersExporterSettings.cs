@@ -74,13 +74,13 @@ namespace stationeers.modding.exporter
         /// Enables post-build replacement of proxy asset references with
         /// external SerializedFile references supplied by patch providers.
         /// </summary>
-        public bool enableAssetReferencePatching = false;
+        public bool enableAssetReferencePatching = true;
 
         /// <summary>
         /// Enables export-time replacement of authoring MonoBehaviour script
         /// references with MonoScripts from external Player SerializedFiles.
         /// </summary>
-        public bool enableMonoScriptReferencePatching = false;
+        public bool enableMonoScriptReferencePatching = true;
 
         // Default export folder list
 
