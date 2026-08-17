@@ -48,6 +48,10 @@ Version 1.0.6
 
 For runtime reference patching, this exporter now uses AssetTools.NET (https://www.nuget.org/packages/AssetsTools.NET/)
 
+## known issues
+
+When reference patching is applied to the assetbundle, the .manifest exported into the mod folder does not accurately reflects the contects of the bundle. It has no impact in the mod or the game.
+
 ## Credits
 
 - Stationeers Modding Team - [Join our discord](https://discord.gg/5qZbPVTw2U)
