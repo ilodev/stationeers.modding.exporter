@@ -42,7 +42,11 @@ The current Tools menu is temporary and contains individual test functions for t
 
 ## Version
 
-Version 1.0.56
+Version 1.0.6
+
+## 3rd Party software
+
+For runtime reference patching, this exporter now uses AssetTools.NET (https://www.nuget.org/packages/AssetsTools.NET/)
 
 ## Credits
 

@@ -37,6 +37,14 @@ namespace stationeers.modding.exporter
 
             foreach (var info in assets.AssetInfos)
             {
+                // AssetBundle.m_Container is bundle bookkeeping, not an
+                // ordinary serialized asset reference. Rewriting its PPtrs
+                // would leave proxy asset paths advertised by the finished
+                // bundle while pointing those paths at external game assets.
+                // Cleanup handles m_Container explicitly instead.
+                if ((AssetClassID)info.TypeId == AssetClassID.AssetBundle)
+                    continue;
+
                 var baseField =
                     manager.GetBaseField(
                         assetsInstance,

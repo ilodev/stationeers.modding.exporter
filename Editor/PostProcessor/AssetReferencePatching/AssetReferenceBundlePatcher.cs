@@ -76,15 +76,16 @@ namespace stationeers.modding.exporter
 
                 var removedProxyAssetPaths =
                     RemoveUnreferencedProxies(
+                        manager,
                         assetsInst,
                         builtPatches);
 
                 if (rewritten == 0 && removedProxyAssetPaths.Count == 0)
                 {
-                    #if DEVELOPMENT_BUILD
+#if DEVELOPMENT_BUILD
                     Debug.Log(
                         "Asset reference patching: no changes required.");
-                    #endif
+#endif
 
                     return AssetReferenceBundlePatchResult.Empty;
                 }
@@ -136,12 +137,12 @@ namespace stationeers.modding.exporter
 
                 File.Delete(uncompressedPath);
 
-                #if DEVELOPMENT_BUILD
+#if DEVELOPMENT_BUILD
                 Debug.Log(
                     $"Asset reference patching complete: " +
                     $"{rewritten} reference(s) rewritten, " +
                     $"{removedProxyAssetPaths.Count} proxy asset(s) removed.");
-                #endif
+#endif
 
                 return new AssetReferenceBundlePatchResult(
                     rewritten,
@@ -161,18 +162,20 @@ namespace stationeers.modding.exporter
 
 
         private static List<string> RemoveUnreferencedProxies(
+            AssetsManager manager,
             AssetsFileInstance assetsInstance,
             IReadOnlyList<BuiltAssetReferencePatch> patches)
         {
+            if (manager == null)
+                throw new ArgumentNullException(nameof(manager));
+
             var removed = new List<string>();
             var assets = assetsInstance.file;
 
-            // AssetReferencePPtrRewriter traverses every deserializable object
-            // in this SerializedFile and rewrites every local PPtr whose
-            // PathID matches a registered proxy. If Rewrite() returns
-            // successfully, no serialized local PPtr to those proxy PathIDs
-            // remains. At that point a RemoveIfUnreferenced proxy can be
-            // removed safely from the file.
+            var cleanupPatches =
+                new Dictionary<string, BuiltAssetReferencePatch>(
+                    StringComparer.OrdinalIgnoreCase);
+
             foreach (var patch in patches)
             {
                 if (patch.Cleanup !=
@@ -180,6 +183,108 @@ namespace stationeers.modding.exporter
                 {
                     continue;
                 }
+
+                cleanupPatches[
+                    NormalizeAssetPath(patch.Source.ProxyAssetPath)] =
+                        patch;
+            }
+
+            if (cleanupPatches.Count == 0)
+                return removed;
+
+            // AssetReferencePPtrRewriter intentionally skips the AssetBundle
+            // object. Its m_Container entries are bundle bookkeeping and must
+            // be removed explicitly for cleanup proxies; otherwise the proxy
+            // .prefab/.asset path remains exposed by the finished bundle.
+            var bundleAssets =
+                assets.GetAssetsOfType(
+                    AssetClassID.AssetBundle);
+
+            if (bundleAssets.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "AssetBundle SerializedFile contains no AssetBundle object " +
+                    "while applying proxy cleanup.");
+            }
+
+            var bundleInfo =
+                bundleAssets[0];
+
+            var bundleField =
+                manager.GetBaseField(
+                    assetsInstance,
+                    bundleInfo);
+
+            var container =
+                bundleField["m_Container.Array"];
+
+            var removedContainerPaths =
+                new HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            for (int i = container.Children.Count - 1; i >= 0; i--)
+            {
+                var entry =
+                    container.Children[i];
+
+                string assetPath =
+                    NormalizeAssetPath(
+                        entry[0].AsString);
+
+                if (!cleanupPatches.TryGetValue(
+                        assetPath,
+                        out var patch))
+                {
+                    continue;
+                }
+
+                var assetPPtr =
+                    entry[1]["asset"];
+
+                int fileId =
+                    assetPPtr["m_FileID"].AsInt;
+
+                long pathId =
+                    assetPPtr["m_PathID"].AsLong;
+
+                // ResolveBuiltPatches found this exact local root earlier.
+                // Refuse to remove a same-named container entry if it no longer
+                // points at the expected proxy object.
+                if (fileId != 0 ||
+                    pathId != patch.ProxyBundlePathId)
+                {
+                    throw new InvalidOperationException(
+                        $"Proxy asset '{patch.Source.ProxyAssetPath}' changed " +
+                        "unexpectedly in AssetBundle.m_Container while applying " +
+                        "cleanup.");
+                }
+
+                container.Children.RemoveAt(i);
+                removedContainerPaths.Add(assetPath);
+            }
+
+            foreach (var pair in cleanupPatches)
+            {
+                if (!removedContainerPaths.Contains(pair.Key))
+                {
+                    throw new InvalidOperationException(
+                        $"Proxy asset '{pair.Value.Source.ProxyAssetPath}' " +
+                        "was not found in AssetBundle.m_Container while applying " +
+                        "cleanup.");
+                }
+            }
+
+            bundleInfo.SetNewData(bundleField);
+
+            // The generic rewrite pass has already redirected ordinary local
+            // PPtrs away from each proxy. After removing the bundle container
+            // entry, the proxy root itself can be removed from the SerializedFile.
+            // This deliberately does not attempt dependency-graph garbage
+            // collection for prefab child objects; those may be shared.
+            foreach (var pair in cleanupPatches)
+            {
+                var patch =
+                    pair.Value;
 
                 var proxyInfo =
                     assets.GetAssetInfo(
