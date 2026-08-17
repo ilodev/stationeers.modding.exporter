@@ -82,7 +82,9 @@ namespace stationeers.modding.exporter
 
             TrySyncAboutXml(settings, newVersion);
 
+            #if DEVELOPMENT_BUILD
             Debug.Log($"[StationeersVersioning] Build version incremented: {oldVersion} -> {newVersion}");
+            #endif
             return true;
         }
 

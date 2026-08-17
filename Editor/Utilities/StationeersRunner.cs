@@ -119,9 +119,11 @@ namespace stationeers.modding.exporter
                 };
 
                 var process = Process.Start(psi);
+                #if DEVELOPMENT_BUILD
                 UnityEngine.Debug.Log(process != null
                     ? $"[StationeersRunner] Steam URI launch requested (pid={process.Id}). Args='{args}'"
                     : $"[StationeersRunner] Steam URI launch requested. Args='{args}'");
+                #endif
 
                 return true;
             }
@@ -141,7 +143,7 @@ namespace stationeers.modding.exporter
         {
             if (!IsValidExePath(exePath))
             {
-                UnityEngine.Debug.Log($"[StationeersRunner] invalid exe path: {exePath}");
+                UnityEngine.Debug.LogWarning($"[StationeersRunner] invalid exe path: {exePath}");
                 return false;
             }
 
@@ -157,7 +159,9 @@ namespace stationeers.modding.exporter
                 };
 
                 Process.Start(psi);
+                #if DEVELOPMENT_BUILD
                 UnityEngine.Debug.Log("[StationeersRunner] Launched: " + exePath);
+                #endif
                 return true;
             }
             catch (Exception ex)

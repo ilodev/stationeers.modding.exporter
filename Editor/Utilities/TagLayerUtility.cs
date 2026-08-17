@@ -200,15 +200,13 @@ namespace stationeers.modding.exporter
                 CheckResult verification = Check();
                 if (!verification.IsValid) {
                     Debug.LogWarning(
-                        "[TagLayerUtility] Settings were saved, but some " +
-                        "tag or layer issues remain."
+                        "[TagLayerUtility] Settings were saved, but some tag or layer issues remain."
                     );
 
                     return false;
                 }
 
                 Debug.Log("[TagLayerUtility] Required tags and layers were applied.");
-
                 return true;
             }
             catch (Exception exception) {

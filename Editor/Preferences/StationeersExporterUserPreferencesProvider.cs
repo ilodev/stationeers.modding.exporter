@@ -137,7 +137,9 @@ namespace stationeers.modding.exporter
                     enabled = EditorGUILayout.Toggle("Enable running the game", enabled);
                     if (EditorGUI.EndChangeCheck())
                     {
+                        #if DEVELOPMENT_BUILD
                         Debug.Log($"Autorun the game on build: {enabled}");
+                        #endif
                         StationeersExporterUserPreferences.RunnerEnabled = enabled;
                     }
 

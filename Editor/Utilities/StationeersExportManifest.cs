@@ -7,6 +7,65 @@ using UnityEngine;
 namespace stationeers.modding.exporter
 {
     /// <summary>
+    /// Asset-reference post-processing details recorded for an export.
+    /// </summary>
+    [Serializable]
+    public sealed class AssetReferencePatchingManifest
+    {
+        public bool enabled;
+        public int mappingCount;
+        public int rewrittenReferenceCount;
+        public int removedProxyCount;
+        public bool cacheHit;
+        public List<AssetReferencePatchManifestEntry> mappings = new();
+    }
+
+    /// <summary>
+    /// One proxy-to-external-asset mapping supplied by a patch provider.
+    /// </summary>
+    [Serializable]
+    public sealed class AssetReferencePatchManifestEntry
+    {
+        public string proxyAssetPath;
+        public string targetSerializedFile;
+        public long targetPathId;
+        public int targetTypeId;
+        public string cleanup;
+        public bool proxyRemoved;
+    }
+
+
+    /// <summary>
+    /// MonoScript-reference post-processing details recorded for an export.
+    /// </summary>
+    [Serializable]
+    public sealed class MonoScriptReferencePatchingManifest
+    {
+        public bool enabled;
+        public int mappingCount;
+        public int matchedMappingCount;
+        public int rewrittenScriptTypeCount;
+        public int rewrittenMonoBehaviourCount;
+        public List<MonoScriptReferencePatchManifestEntry> mappings = new();
+    }
+
+    /// <summary>
+    /// One authoring MonoBehaviour type to external Player MonoScript mapping.
+    /// </summary>
+    [Serializable]
+    public sealed class MonoScriptReferencePatchManifestEntry
+    {
+        public string proxyAssembly;
+        public string proxyNamespace;
+        public string proxyClass;
+        public string targetAssembly;
+        public string targetNamespace;
+        public string targetClass;
+        public string targetSerializedFile;
+        public long targetPathId;
+    }
+
+    /// <summary>
     /// Serializable record of the most recent export.
     /// </summary>
     /// <remarks>
@@ -104,6 +163,16 @@ namespace stationeers.modding.exporter
         /// Count of scenes assigned to the bundle.
         /// </summary>
         public int scenesCount;
+
+        /// <summary>
+        /// Asset-reference patching configuration and results for this export.
+        /// </summary>
+        public AssetReferencePatchingManifest assetReferencePatching = new();
+
+        /// <summary>
+        /// MonoScript-reference patching configuration and results.
+        /// </summary>
+        public MonoScriptReferencePatchingManifest monoScriptReferencePatching = new();
 
         /// <summary>
         /// Warnings collected during export (missing files, skipped items, exceptions, etc).

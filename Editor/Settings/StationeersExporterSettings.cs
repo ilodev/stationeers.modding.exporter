@@ -70,6 +70,18 @@ namespace stationeers.modding.exporter
         /// </remarks>
         public bool aboutWriteUtf8Bom = true;
 
+        /// <summary>
+        /// Enables post-build replacement of proxy asset references with
+        /// external SerializedFile references supplied by patch providers.
+        /// </summary>
+        public bool enableAssetReferencePatching = true;
+
+        /// <summary>
+        /// Enables export-time replacement of authoring MonoBehaviour script
+        /// references with MonoScripts from external Player SerializedFiles.
+        /// </summary>
+        public bool enableMonoScriptReferencePatching = true;
+
         // Default export folder list
 
         /// <summary>

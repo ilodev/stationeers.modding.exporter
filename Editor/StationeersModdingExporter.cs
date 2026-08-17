@@ -41,14 +41,18 @@ namespace stationeers.modding.exporter
 
         private static void DeleteOutputFolder(string folder)
         {
+#if DEVELOPMENT_BUILD
             Debug.Log($"Deleting build directory: {folder}");
+#endif
             if (Directory.Exists(folder))
                 Directory.Delete(folder, true);
         }
 
         private static void CreateOutputFolder(string folder)
         {
+#if DEVELOPMENT_BUILD
             Debug.Log($"Creating build directory: {folder}");
+#endif
             if (!Directory.Exists(folder))
                 Directory.CreateDirectory(folder);
         }
@@ -58,7 +62,9 @@ namespace stationeers.modding.exporter
             // Find all asmdef assets in the project (excluding Editor/Packages as defined by AssetUtility).
             List<string> asmdefAssetPaths = AssetUtility.GetAssets("t:AssemblyDefinitionAsset");
 
+#if DEVELOPMENT_BUILD
             Debug.Log($"Exporting {asmdefAssetPaths.Count} assemblies");
+#endif
 
             // Validate export folder early.
             if (string.IsNullOrWhiteSpace(exportFolder))
@@ -134,6 +140,7 @@ namespace stationeers.modding.exporter
                 catch (Exception ex)
                 {
                     manifest.warnings.Add($"Failed exporting asmdef '{asmdefAssetPath}': {ex.Message}");
+                    Debug.Log($"Failed exporting asmdef '{asmdefAssetPath}': {ex.Message}");
                 }
             }
 
@@ -261,7 +268,9 @@ namespace stationeers.modding.exporter
                 if (!buildScenes.Contains(path))
                 {
                     AssetImporter.GetAtPath(path).SetAssetBundleNameAndVariant(null, null);
+#if DEVELOPMENT_BUILD
                     Debug.Log($"- Removed scene from bundle: {path}");
+#endif
                 }
             }
 
@@ -275,48 +284,370 @@ namespace stationeers.modding.exporter
             return buildScenes.ToList();
         }
 
-        private static int ExportAssetBundles(BuildPlayerOptions options, StationeersExportManifest manifest)
+        private static int ExportAssetBundles(
+            BuildPlayerOptions options,
+            StationeersExportManifest manifest)
         {
-            Debug.Log("Export AssetBundles");
+            Debug.Log("Exporting package");
 
-            List<string> assetPaths = AssetUtility.GetAssets("t:prefab t:scriptableobject");
+            List<string> assetPaths =
+                AssetUtility.GetAssets("t:prefab t:scriptableobject");
+
             assetPaths.ForEach(s => SetAssetBundle(s));
             manifest.assetPathsBundled.AddRange(assetPaths);
 
-            List<string> scenePaths = SyncSceneAssetBundles("scenes");
-            scenePaths = scenePaths.Where(System.IO.File.Exists).ToList();
+            List<string> scenePaths =
+                SyncSceneAssetBundles("scenes");
+
+            scenePaths =
+                scenePaths
+                    .Where(System.IO.File.Exists)
+                    .ToList();
+
             manifest.scenePathsBundled.AddRange(scenePaths);
 
-            var platform = BuildTarget.StandaloneWindows.ToString();
-            var subDir = Path.Combine(exportFolder, platform);
+            var platform =
+                BuildTarget.StandaloneWindows.ToString();
+
+            var subDir =
+                Path.Combine(
+                    exportFolder,
+                    platform);
+
             Directory.CreateDirectory(subDir);
 
-            AssetBundleManifest abManifest = null;
-            try
-            {
-                abManifest = BuildPipeline.BuildAssetBundles(
+            string bundleName =
+                $"{Sanitize(PlayerSettings.productName)}.assets";
+
+            string assetsBundlePath =
+                Path.Combine(
                     subDir,
-                    BuildAssetBundleOptions.None,
-                    BuildTarget.StandaloneWindows);
-            }
-            catch (OperationCanceledException)
+                    bundleName);
+
+            IReadOnlyList<ResolvedAssetReferencePatch> patches =
+                Array.Empty<ResolvedAssetReferencePatch>();
+
+            IReadOnlyList<ResolvedMonoScriptReferencePatch> monoScriptPatches =
+                Array.Empty<ResolvedMonoScriptReferencePatch>();
+
+            bool patchingEnabled =
+                StationeersExporterSettings
+                    .instance
+                    .enableAssetReferencePatching;
+
+            bool monoScriptPatchingEnabled =
+                StationeersExporterSettings
+                    .instance
+                    .enableMonoScriptReferencePatching;
+
+            manifest.assetReferencePatching.enabled =
+                patchingEnabled;
+
+            manifest.monoScriptReferencePatching.enabled =
+                monoScriptPatchingEnabled;
+
+            // ------------------------------------------------------------
+            // Collect asset-reference patch mappings
+            // ------------------------------------------------------------
+
+            if (patchingEnabled)
             {
-                // Some Unity paths throw this
-                manifest.warnings.Add("AssetBundle build was canceled.");
-                throw; // let Export() decide how to handle cancel
+                var collectedPatches =
+                    AssetReferencePatchRegistry.Collect();
+
+                patches =
+                    AssetReferencePatchRegistry.Resolve(
+                        collectedPatches);
+
+                manifest.assetReferencePatching.mappingCount =
+                    patches.Count;
+
+                foreach (var patch in patches)
+                {
+                    manifest.assetReferencePatching.mappings.Add(
+                        new AssetReferencePatchManifestEntry
+                        {
+                            proxyAssetPath =
+                                patch.ProxyAssetPath,
+
+                            targetSerializedFile =
+                                patch.Source.TargetSerializedFile,
+
+                            targetPathId =
+                                patch.Source.TargetPathId,
+
+                            targetTypeId =
+                                patch.Source.TargetTypeId,
+
+                            cleanup =
+                                patch.Source.Cleanup.ToString()
+                        });
+                }
+
+#if DEVELOPMENT_BUILD
+                Debug.Log(
+                    $"Asset reference patching: " +
+                    $"{patches.Count} mapping(s).");
+#endif
             }
-            catch (Exception ex)
+
+            // ------------------------------------------------------------
+            // Collect MonoScript-reference patch mappings
+            // ------------------------------------------------------------
+
+            if (monoScriptPatchingEnabled)
             {
-                manifest.warnings.Add($"AssetBundle build failed: {ex.Message}");
-                throw;
+                var collectedMonoScriptPatches =
+                    MonoScriptReferencePatchRegistry.Collect();
+
+                monoScriptPatches =
+                    MonoScriptReferencePatchRegistry.Resolve(
+                        collectedMonoScriptPatches);
+
+                manifest.monoScriptReferencePatching.mappingCount =
+                    monoScriptPatches.Count;
+
+                foreach (var patch in monoScriptPatches)
+                {
+                    manifest.monoScriptReferencePatching.mappings.Add(
+                        new MonoScriptReferencePatchManifestEntry
+                        {
+                            proxyAssembly = patch.ProxyAssemblyName,
+                            proxyNamespace = patch.ProxyNamespace,
+                            proxyClass = patch.ProxyClassName,
+                            targetAssembly =
+                                patch.Source.TargetAssemblyName,
+                            targetNamespace =
+                                patch.Source.TargetNamespace,
+                            targetClass =
+                                patch.Source.TargetClassName,
+                            targetSerializedFile =
+                                patch.Source.TargetSerializedFile,
+                            targetPathId =
+                                patch.Source.TargetPathId
+                        });
+                }
+
+#if DEVELOPMENT_BUILD
+                Debug.Log(
+                    $"MonoScript reference patching: " +
+                    $"{monoScriptPatches.Count} mapping(s).");
+#endif
+            }
+
+            bool hasAssetReferencePatches =
+                patchingEnabled && patches.Count > 0;
+
+            bool hasMonoScriptReferencePatches =
+                monoScriptPatchingEnabled && monoScriptPatches.Count > 0;
+
+            bool hasBundlePostProcessing =
+                hasAssetReferencePatches ||
+                hasMonoScriptReferencePatches;
+
+            // ------------------------------------------------------------
+            // Build AssetBundles
+            // ------------------------------------------------------------
+
+            AssetBundleManifest abManifest = null;
+
+            if (hasBundlePostProcessing)
+            {
+                // Restore Unity's pristine output before invoking the
+                // incremental AssetBundle build. This is shared by both
+                // ordinary asset-reference patching and MonoScript patching
+                // so Unity never sees an already post-processed bundle as
+                // its incremental-build input.
+                //
+                // If no pristine cache exists, force exactly one rebuild.
+                bool restoredPristine =
+                    AssetReferencePatchCache
+                        .RestorePristineBundle(
+                            assetsBundlePath,
+                            platform);
+
+                var buildOptions =
+                    restoredPristine
+                        ? BuildAssetBundleOptions.None
+                        : BuildAssetBundleOptions
+                            .ForceRebuildAssetBundle;
+
+                if (hasAssetReferencePatches)
+                {
+                    // Registered ordinary proxy assets are explicit roots
+                    // so their actual bundle PathIDs can be read from
+                    // AssetBundle.m_Container. MonoScript proxies do not
+                    // need this: they are serialized through the prefabs or
+                    // ScriptableObjects that use their components.
+                    var buildMap =
+                        AssetReferencePatchBuildMap.Create(
+                            Sanitize(PlayerSettings.productName),
+                            assetPaths,
+                            scenePaths,
+                            patches);
+
+                    abManifest =
+                        BuildPipeline.BuildAssetBundles(
+                            subDir,
+                            buildMap,
+                            buildOptions,
+                            BuildTarget.StandaloneWindows);
+                }
+                else
+                {
+                    abManifest =
+                        BuildPipeline.BuildAssetBundles(
+                            subDir,
+                            buildOptions,
+                            BuildTarget.StandaloneWindows);
+                }
+            }
+            else
+            {
+                abManifest =
+                    BuildPipeline.BuildAssetBundles(
+                        subDir,
+                        BuildAssetBundleOptions.None,
+                        BuildTarget.StandaloneWindows);
             }
 
             if (abManifest == null)
             {
-                Debug.Log("No assetbundle was built.");
-                // This is the best “Unity canceled / failed” signal for this call, but I can't 'fail' the built
-                // if there was just code and no assets. Ideally, treat it as canceled/failed and abort export.
-                // throw new OperationCanceledException("AssetBundle build canceled or failed (manifest was null).");
+                throw new InvalidOperationException(
+                    "AssetBundle build returned no manifest; no AssetBundle was built.");
+            }
+
+            // ------------------------------------------------------------
+            // Post-process assets bundle
+            // ------------------------------------------------------------
+
+            if (hasBundlePostProcessing)
+            {
+                // Use Unity's own content hash rather than hashing the
+                // complete bundle file ourselves.
+                string unityBundleHash =
+                    abManifest
+                        .GetAssetBundleHash(bundleName)
+                        .ToString();
+
+                // IMPORTANT:
+                // Save this BEFORE any post-processing. This is Unity's
+                // pristine output and is restored before the next incremental
+                // build.
+                AssetReferencePatchCache.SavePristineBundleIfChanged(
+                    assetsBundlePath,
+                    platform,
+                    unityBundleHash);
+
+                // --------------------------------------------------------
+                // Ordinary asset-reference patching
+                // --------------------------------------------------------
+
+                if (hasAssetReferencePatches)
+                {
+                    string patchKey =
+                        AssetReferencePatchCache.ComputePatchKey(
+                            unityBundleHash,
+                            patches);
+
+                    AssetReferenceBundlePatchResult patchResult;
+
+                    if (AssetReferencePatchCache
+                        .TryRestorePatchedBundleWithMetadata(
+                            patchKey,
+                            assetsBundlePath,
+                            out patchResult))
+                    {
+                        manifest.assetReferencePatching.cacheHit =
+                            true;
+
+#if DEVELOPMENT_BUILD
+                        Debug.Log(
+                            "Asset reference patching: cache hit.");
+#endif
+                    }
+                    else
+                    {
+                        manifest.assetReferencePatching.cacheHit =
+                            false;
+
+                        patchResult =
+                            AssetReferenceBundlePatcher.Patch(
+                                assetsBundlePath,
+                                patches);
+
+                        // Save the asset-patched output before the MonoScript
+                        // pass. This keeps the existing cache independent of
+                        // MonoScript mappings; the script pass is cheap and is
+                        // intentionally reapplied every export.
+                        AssetReferencePatchCache.SavePatchedBundle(
+                            patchKey,
+                            assetsBundlePath);
+
+                        AssetReferencePatchCache.SavePatchMetadata(
+                            patchKey,
+                            Path.GetFileName(assetsBundlePath),
+                            patchResult);
+
+#if DEVELOPMENT_BUILD
+                        Debug.Log(
+                            "Asset reference patching: cache updated.");
+#endif
+                    }
+
+                    manifest
+                        .assetReferencePatching
+                        .rewrittenReferenceCount =
+                            patchResult.RewrittenReferenceCount;
+
+                    manifest
+                        .assetReferencePatching
+                        .removedProxyCount =
+                            patchResult.RemovedProxyCount;
+
+                    if (patchResult.RemovedProxyCount > 0)
+                    {
+                        var removedPaths =
+                            new HashSet<string>(
+                                patchResult.RemovedProxyAssetPaths,
+                                StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var mapping in
+                                 manifest.assetReferencePatching.mappings)
+                        {
+                            mapping.proxyRemoved =
+                                removedPaths.Contains(
+                                    mapping.proxyAssetPath);
+                        }
+                    }
+                }
+
+                // --------------------------------------------------------
+                // MonoScript-reference patching
+                // --------------------------------------------------------
+
+                if (hasMonoScriptReferencePatches)
+                {
+                    var monoScriptPatchResult =
+                        MonoScriptReferenceBundlePatcher.Patch(
+                            assetsBundlePath,
+                            monoScriptPatches);
+
+                    manifest
+                        .monoScriptReferencePatching
+                        .matchedMappingCount =
+                            monoScriptPatchResult.MatchedMappingCount;
+
+                    manifest
+                        .monoScriptReferencePatching
+                        .rewrittenScriptTypeCount =
+                            monoScriptPatchResult.RewrittenScriptTypeCount;
+
+                    manifest
+                        .monoScriptReferencePatching
+                        .rewrittenMonoBehaviourCount =
+                            monoScriptPatchResult.RewrittenMonoBehaviourCount;
+                }
             }
 
             return assetPaths.Count;
@@ -332,16 +663,34 @@ namespace stationeers.modding.exporter
             return (options.options & BuildOptions.BuildScriptsOnly) != 0;
         }
 
+        private static void TrySaveManifestAfterUnsuccessfulExport(
+            StationeersExportManifest manifest,
+            string outcome)
+        {
+            try
+            {
+                StationeersExportManifestStore.Save(manifest);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(
+                    $"Could not save export manifest after {outcome}: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Export process
         /// </summary>
         /// <param name="options"></param>
         public static void Export(BuildPlayerOptions options)
         {
+#if DEVELOPMENT_BUILD
             Debug.Log("Export started");
+#endif
             exportFolder = options.locationPathName;
 
-            var manifest = new StationeersExportManifest {
+            var manifest = new StationeersExportManifest
+            {
                 unityVersion = Application.unityVersion,
                 productName = PlayerSettings.productName,
                 exportFolder = exportFolder,
@@ -354,7 +703,10 @@ namespace stationeers.modding.exporter
             try
             {
                 if (CleanBuildCacheIsSet(options))
+                {
                     DeleteOutputFolder(exportFolder);
+                    AssetReferencePatchCache.Clear();
+                }
 
                 CreateOutputFolder(exportFolder);
 
@@ -375,23 +727,37 @@ namespace stationeers.modding.exporter
 
                 StationeersExportManifestStore.Save(manifest);
 
+                if (manifest.warnings.Count > 0)
+                {
+                    Debug.LogWarning(
+                        $"Export completed with {manifest.warnings.Count} warning(s). " +
+                        "Check the export manifest for details.");
+                }
+
                 if (StationeersExporterUserPreferences.AutoIncrementBuild)
                     StationeersVersioning.IncrementBuildVersion(out var oldVersion, out var newVersion);
 
-                Debug.Log($"Export complete: {assemblies} Assemblies, {assets} Assets, {folderAssets} Folders.");
+                Debug.Log($"Export complete: {assemblies} Assemblie(s), {assets} Assetbundle(s), {folderAssets} Folder(s).");
             }
             catch (OperationCanceledException oce)
             {
-                manifest.warnings.Add($"Export canceled: {oce.Message}");
-                StationeersExportManifestStore.Save(manifest);
-                Debug.LogWarning($"Export canceled: {oce.Message}");
+                string message =
+                    string.IsNullOrWhiteSpace(oce.Message)
+                        ? "Export canceled by user."
+                        : $"Export canceled: {oce.Message}";
+
+                manifest.warnings.Add(message);
+                Debug.LogWarning(message);
+                TrySaveManifestAfterUnsuccessfulExport(manifest, "cancellation");
                 return;
             }
             catch (Exception ex)
             {
-                manifest.warnings.Add($"Export failed: {ex}");
-                StationeersExportManifestStore.Save(manifest);
-                Debug.LogError($"Export failed: {ex}");
+                string message = $"Export failed: {ex}";
+
+                manifest.warnings.Add(message);
+                Debug.LogError(message);
+                TrySaveManifestAfterUnsuccessfulExport(manifest, "failure");
                 throw;
             }
         }

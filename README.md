@@ -42,7 +42,15 @@ The current Tools menu is temporary and contains individual test functions for t
 
 ## Version
 
-Version 1.0.56
+Version 1.0.7
+
+## 3rd Party software
+
+For runtime reference patching, this exporter now uses AssetTools.NET (https://www.nuget.org/packages/AssetsTools.NET/)
+
+## known issues
+
+When reference patching is applied to the assetbundle, the .manifest exported into the mod folder does not accurately reflects the contects of the bundle. It has no impact in the mod or the game.
 
 ## Credits
 
