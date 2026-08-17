@@ -2,52 +2,22 @@ using System;
 using System.IO;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
+using UnityEditor;
 using UnityEngine;
 
 namespace stationeers.modding.exporter
 {
     internal static class VanillaScriptPocPatcher
     {
-        // ---------------------------------------------------------
-        // EDITOR-SIDE TEST SCRIPT
-        //
-        // For this first PoC, make the Editor script have the same
-        // managed identity as the real Stationeers script:
-        //
-        //     Assembly-CSharp
-        //     namespace: ""
-        //     class: AlwaysRenderObject
-        //
-        // This avoids testing scriptID translation at the same time.
-        // ---------------------------------------------------------
+        private const string ProxyAssembly = "stationeers.modding.exporter.authoring";
+        private const string ProxyNamespace = "Stationeers.EditorReferences";
+        private const string ProxyClass = "AlwaysRenderObjectProxy";
 
-        private const string ProxyAssembly =
-            "Assembly-CSharp";
-
-        private const string ProxyNamespace =
-            "";
-
-        private const string ProxyClass =
-            "AlwaysRenderObject";
-
-        // From StationeersMonoScripts.xml:
-        //
-        // <MonoScript
-        //     assembly="Assembly-CSharp"
-        //     namespace=""
-        //     class="AlwaysRenderObject"
-        //     file="globalgamemanagers.assets"
-        //     pathId="2323"
-        //     classId="115"
-        //     kind="MonoBehaviour"
-        //     baseType="UnityEngine.MonoBehaviour" />
-
-        private const string VanillaFile =
-            "globalgamemanagers.assets";
-
+        private const string VanillaFile = "globalgamemanagers.assets";
         private const long VanillaPathId = 2323;
 
-        public static void PatchAlwaysRenderObject(string bundlePath)
+        public static void PatchAlwaysRenderObject(
+            string bundlePath)
         {
             if (!File.Exists(bundlePath))
             {
@@ -57,14 +27,17 @@ namespace stationeers.modding.exporter
             }
 
             Debug.Log(
-                $"[Vanilla Script PoC] Opening: {bundlePath}");
+                $"[Script PoC] Opening: {bundlePath}");
 
             var manager = new AssetsManager();
 
             var bundleInst =
-                manager.LoadBundleFile(bundlePath, true);
+                manager.LoadBundleFile(
+                    bundlePath,
+                    true);
 
-            var bundle = bundleInst.file;
+            var bundle =
+                bundleInst.file;
 
             var assetsInst =
                 manager.LoadAssetsFileFromBundle(
@@ -72,19 +45,12 @@ namespace stationeers.modding.exporter
                     0,
                     false);
 
-            var assets = assetsInst.file;
+            var assets =
+                assetsInst.file;
 
-            if (!assets.Metadata.TypeTreeEnabled)
-            {
-                throw new InvalidOperationException(
-                    "PoC bundle has stripped TypeTrees. " +
-                    "This test currently expects the built bundle " +
-                    "to contain TypeTrees.");
-            }
-
-            // ---------------------------------------------------------
-            // Find the locally embedded Editor MonoScript.
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // Find our authoring MonoScript.
+            // -----------------------------------------------------
 
             AssetFileInfo proxyScriptInfo = null;
 
@@ -97,24 +63,24 @@ namespace stationeers.modding.exporter
                         assetsInst,
                         info);
 
-                string assemblyName =
+                string assembly =
                     script["m_AssemblyName"].AsString;
 
-                string namespaceName =
+                string ns =
                     script["m_Namespace"].AsString;
 
                 string className =
                     script["m_ClassName"].AsString;
 
                 if (!AssemblyNamesEqual(
-                        assemblyName,
+                        assembly,
                         ProxyAssembly))
                 {
                     continue;
                 }
 
                 if (!string.Equals(
-                        namespaceName,
+                        ns,
                         ProxyNamespace,
                         StringComparison.Ordinal))
                 {
@@ -132,35 +98,124 @@ namespace stationeers.modding.exporter
                 if (proxyScriptInfo != null)
                 {
                     throw new InvalidOperationException(
-                        $"More than one local MonoScript matched " +
-                        $"{ProxyAssembly} / " +
-                        $"{ProxyNamespace} / " +
-                        $"{ProxyClass}.");
+                        "More than one matching proxy MonoScript found.");
                 }
 
-                proxyScriptInfo = info;
+                proxyScriptInfo =
+                    info;
             }
 
             if (proxyScriptInfo == null)
             {
                 throw new InvalidOperationException(
-                    $"Local MonoScript not found: " +
+                    $"Proxy MonoScript not found: " +
                     $"{ProxyAssembly} / " +
                     $"{ProxyNamespace} / " +
                     $"{ProxyClass}");
             }
 
-            long proxyScriptPathId =
+            long proxyPathId =
                 proxyScriptInfo.PathId;
 
             Debug.Log(
-                $"[Vanilla Script PoC] " +
-                $"Proxy MonoScript local PathID = " +
-                $"{proxyScriptPathId}");
+                $"[Script PoC] Proxy MonoScript PathID = " +
+                $"{proxyPathId}");
 
-            // ---------------------------------------------------------
-            // Add/reuse globalgamemanagers.assets external.
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // Find ScriptTypes entry.
+            // -----------------------------------------------------
+
+            int scriptTypeIndex =
+                -1;
+
+            for (int i = 0;
+                 i < assets.Metadata.ScriptTypes.Count;
+                 i++)
+            {
+                var pptr =
+                    assets.Metadata.ScriptTypes[i];
+
+                if (pptr.FileId == 0 &&
+                    pptr.PathId == proxyPathId)
+                {
+                    if (scriptTypeIndex != -1)
+                    {
+                        throw new InvalidOperationException(
+                            "More than one ScriptTypes entry " +
+                            "references the proxy MonoScript.");
+                    }
+
+                    scriptTypeIndex =
+                        i;
+                }
+            }
+
+            if (scriptTypeIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "No ScriptTypes entry references " +
+                    $"proxy MonoScript {proxyPathId}.");
+            }
+
+            Debug.Log(
+                $"[Script PoC] ScriptTypes index = " +
+                $"{scriptTypeIndex}");
+
+            // Your inspection should currently report 0.
+            if (scriptTypeIndex != 0)
+            {
+                Debug.LogWarning(
+                    $"[Script PoC] Expected index 0 from the " +
+                    $"inspection, but got {scriptTypeIndex}. " +
+                    "Continuing.");
+            }
+
+            // -----------------------------------------------------
+            // Find MonoBehaviour(s) pointing to the proxy.
+            // -----------------------------------------------------
+
+            int matchingBehaviours =
+                0;
+
+            foreach (var info in
+                     assets.GetAssetsOfType(
+                         AssetClassID.MonoBehaviour))
+            {
+                var behaviour =
+                    manager.GetBaseField(
+                        assetsInst,
+                        info);
+
+                var scriptPPtr =
+                    behaviour["m_Script"];
+
+                int fileId =
+                    scriptPPtr["m_FileID"].AsInt;
+
+                long pathId =
+                    scriptPPtr["m_PathID"].AsLong;
+
+                if (fileId == 0 &&
+                    pathId == proxyPathId)
+                {
+                    Debug.Log(
+                        $"[Script PoC] Found matching " +
+                        $"MonoBehaviour PathID {info.PathId}");
+
+                    matchingBehaviours++;
+                }
+            }
+
+            if (matchingBehaviours == 0)
+            {
+                throw new InvalidOperationException(
+                    "Proxy MonoScript exists, but no " +
+                    "MonoBehaviour references it.");
+            }
+
+            // -----------------------------------------------------
+            // Add/reuse globalgamemanagers.assets.
+            // -----------------------------------------------------
 
             int externalFileId =
                 FindOrAddExternal(
@@ -168,105 +223,65 @@ namespace stationeers.modding.exporter
                     VanillaFile);
 
             Debug.Log(
-                $"[Vanilla Script PoC] " +
-                $"{VanillaFile} m_FileID = " +
+                $"[Script PoC] {VanillaFile} FileID = " +
                 $"{externalFileId}");
 
-            // ---------------------------------------------------------
-            // Patch SerializedFile Metadata.ScriptTypes.
+            // -----------------------------------------------------
+            // PATCH #1:
+            // Metadata.ScriptTypes[index]
             //
-            // Find any ScriptTypes entry pointing at the local
-            // MonoScript:
+            // BEFORE:
+            //   0 / proxyPathId
             //
-            //     fileID = 0
-            //     pathID = proxyScriptPathId
-            //
-            // and redirect it to:
-            //
-            //     globalgamemanagers.assets
-            //     PathID 2323
-            //
-            // We intentionally KEEP THE SAME SCRIPT TYPE INDEX.
-            // ---------------------------------------------------------
+            // AFTER:
+            //   externalFileId / 2323
+            // -----------------------------------------------------
 
-            int patchedScriptTypes = 0;
+            var scriptTypePPtr =
+                assets.Metadata.ScriptTypes[
+                    scriptTypeIndex];
 
-            var scriptTypes =
-                assets.Metadata.ScriptTypes;
+            Debug.Log(
+                $"[Script PoC] ScriptTypes[{scriptTypeIndex}] " +
+                $"before = " +
+                $"{scriptTypePPtr.FileId}/" +
+                $"{scriptTypePPtr.PathId}");
 
-            for (int i = 0;
-                 i < scriptTypes.Count;
-                 i++)
-            {
-                var scriptType =
-                    scriptTypes[i];
+            scriptTypePPtr.FileId =
+                externalFileId;
 
-                if (scriptType.FileId != 0 ||
-                    scriptType.PathId != proxyScriptPathId)
-                {
-                    continue;
-                }
+            scriptTypePPtr.PathId =
+                VanillaPathId;
 
-                Debug.Log(
-                    $"[Vanilla Script PoC] " +
-                    $"ScriptTypes[{i}] before: " +
-                    $"{scriptType.FileId}/" +
-                    $"{scriptType.PathId}");
+            assets.Metadata.ScriptTypes[
+                scriptTypeIndex] =
+                scriptTypePPtr;
 
-                scriptType.FileId =
-                    externalFileId;
+            Debug.Log(
+                $"[Script PoC] ScriptTypes[{scriptTypeIndex}] " +
+                $"after = " +
+                $"{externalFileId}/" +
+                $"{VanillaPathId}");
 
-                scriptType.PathId =
-                    VanillaPathId;
+            // -----------------------------------------------------
+            // PATCH #2:
+            // MonoBehaviour.m_Script
+            // -----------------------------------------------------
 
-                // Important if AssetPPtr happens to be a value type
-                // in the AT.NET version in use.
-                scriptTypes[i] =
-                    scriptType;
-
-                patchedScriptTypes++;
-
-                Debug.Log(
-                    $"[Vanilla Script PoC] " +
-                    $"ScriptTypes[{i}] after: " +
-                    $"{externalFileId}/" +
-                    $"{VanillaPathId}");
-            }
-
-            if (patchedScriptTypes == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Found local MonoScript PathID " +
-                    $"{proxyScriptPathId}, but no Metadata.ScriptTypes " +
-                    $"entry referenced it.");
-            }
-
-            // For this first PoC I would expect exactly one.
-            if (patchedScriptTypes != 1)
-            {
-                Debug.LogWarning(
-                    $"[Vanilla Script PoC] " +
-                    $"Patched {patchedScriptTypes} ScriptTypes entries. " +
-                    $"Expected one; continuing for inspection.");
-            }
-
-            // ---------------------------------------------------------
-            // Rewrite MonoBehaviour.m_Script references.
-            // ---------------------------------------------------------
-
-            int patchedMonoBehaviours = 0;
+            int patchedBehaviours =
+                0;
 
             foreach (var info in
                      assets.GetAssetsOfType(
                          AssetClassID.MonoBehaviour))
             {
-                var monoBehaviour =
+                var behaviour =
                     manager.GetBaseField(
                         assetsInst,
                         info);
 
                 var scriptPPtr =
-                    monoBehaviour["m_Script"];
+                    behaviour["m_Script"];
 
                 int fileId =
                     scriptPPtr["m_FileID"].AsInt;
@@ -275,14 +290,10 @@ namespace stationeers.modding.exporter
                     scriptPPtr["m_PathID"].AsLong;
 
                 if (fileId != 0 ||
-                    pathId != proxyScriptPathId)
+                    pathId != proxyPathId)
                 {
                     continue;
                 }
-
-                Debug.Log(
-                    $"[Vanilla Script PoC] " +
-                    $"Patching MonoBehaviour PathID {info.PathId}");
 
                 scriptPPtr["m_FileID"].AsInt =
                     externalFileId;
@@ -291,30 +302,25 @@ namespace stationeers.modding.exporter
                     VanillaPathId;
 
                 info.SetNewData(
-                    monoBehaviour);
+                    behaviour);
 
-                patchedMonoBehaviours++;
+                patchedBehaviours++;
+
+                Debug.Log(
+                    $"[Script PoC] Patched MonoBehaviour " +
+                    $"PathID {info.PathId} -> " +
+                    $"{externalFileId}/{VanillaPathId}");
             }
 
-            if (patchedMonoBehaviours == 0)
+            if (patchedBehaviours == 0)
             {
                 throw new InvalidOperationException(
-                    $"Found proxy MonoScript PathID " +
-                    $"{proxyScriptPathId}, but no MonoBehaviour " +
-                    $"referenced it.");
+                    "No MonoBehaviours were patched.");
             }
 
-            Debug.Log(
-                $"[Vanilla Script PoC] Rewrote " +
-                $"{patchedMonoBehaviours} MonoBehaviour(s).");
-
-            Debug.Log(
-                $"[Vanilla Script PoC] Rewrote " +
-                $"{patchedScriptTypes} ScriptTypes entry/entries.");
-
-            // ---------------------------------------------------------
-            // Put modified SerializedFile back into bundle.
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // Write SerializedFile back into bundle.
+            // -----------------------------------------------------
 
             bundle.BlockAndDirInfo
                   .DirectoryInfos[0]
@@ -322,11 +328,11 @@ namespace stationeers.modding.exporter
 
             string uncompressedPath =
                 bundlePath +
-                ".vanilla-script-poc-uncompressed";
+                ".script-poc-uncompressed";
 
             string packedPath =
                 bundlePath +
-                ".vanilla-script-poc-packed";
+                ".script-poc-packed";
 
             if (File.Exists(uncompressedPath))
                 File.Delete(uncompressedPath);
@@ -343,9 +349,9 @@ namespace stationeers.modding.exporter
 
             manager.UnloadAll();
 
-            // ---------------------------------------------------------
-            // Repack LZ4 exactly like the material PoC.
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // Repack LZ4.
+            // -----------------------------------------------------
 
             var uncompressedBundle =
                 new AssetBundleFile();
@@ -381,10 +387,53 @@ namespace stationeers.modding.exporter
                 bundlePath);
 
             Debug.Log(
-                "[Vanilla Script PoC] SUCCESS. " +
-                $"MonoBehaviour now references " +
-                $"{VanillaFile} / " +
+                $"[Script PoC] SUCCESS. " +
+                $"{patchedBehaviours} MonoBehaviour(s) now " +
+                $"point to {VanillaFile} / " +
                 $"PathID {VanillaPathId}.");
+        }
+
+        private static int FindOrAddExternal(
+            AssetsFile assets,
+            string path)
+        {
+            var externals =
+                assets.Metadata.Externals;
+
+            for (int i = 0;
+                 i < externals.Count;
+                 i++)
+            {
+                if (string.Equals(
+                        externals[i].PathName,
+                        path,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    // PPtr FileID is one-based.
+                    return i + 1;
+                }
+            }
+
+            externals.Add(
+                new AssetsFileExternal
+                {
+                    VirtualAssetPathName =
+                        string.Empty,
+
+                    Guid =
+                        new GUID128(),
+
+                    Type =
+                        AssetsFileExternalType.Normal,
+
+                    PathName =
+                        path,
+
+                    OriginalPathName =
+                        string.Empty
+                });
+
+            return externals.Count;
         }
 
         private static bool AssemblyNamesEqual(
@@ -415,50 +464,43 @@ namespace stationeers.modding.exporter
             return value;
         }
 
-        private static int FindOrAddExternal(
-            AssetsFile assets,
-            string path)
+
+        [MenuItem(
+    "Tools/Stationeers Modding/PoC/Patch AlwaysRenderObject")]
+        private static void PatchAlwaysRenderObjectFromMenu()
         {
-            var externals =
-                assets.Metadata.Externals;
+            string bundlePath = EditorUtility.OpenFilePanel(
+                "Select AssetBundle to patch",
+                "",
+                "");
 
-            for (int i = 0;
-                 i < externals.Count;
-                 i++)
+            if (string.IsNullOrWhiteSpace(bundlePath))
+                return;
+
+            try
             {
-                var external =
-                    externals[i];
+                // Make a backup before modifying the bundle.
+                string backupPath =
+                    bundlePath + ".before-script-poc";
 
-                if (string.Equals(
-                        external.PathName,
-                        path,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    // PPtr m_FileID is 1-based.
-                    return i + 1;
-                }
+                File.Copy(
+                    bundlePath,
+                    backupPath,
+                    true);
+
+                Debug.Log(
+                    $"[Script PoC] Backup created:\n{backupPath}");
+
+                PatchAlwaysRenderObject(bundlePath);
+
+                Debug.Log(
+                    "[Script PoC] Patch complete. " +
+                    "Run the MonoScript inspector on the patched bundle.");
             }
-
-            externals.Add(
-                new AssetsFileExternal
-                {
-                    VirtualAssetPathName =
-                        string.Empty,
-
-                    Guid =
-                        new GUID128(),
-
-                    Type =
-                        AssetsFileExternalType.Normal,
-
-                    PathName =
-                        path,
-
-                    OriginalPathName =
-                        string.Empty
-                });
-
-            return externals.Count;
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
         }
     }
 }

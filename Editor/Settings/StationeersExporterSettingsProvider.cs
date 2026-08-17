@@ -278,6 +278,11 @@ namespace stationeers.modding.exporter
                         "Enable replacing proxy assets with in-game assets (Depends on the tools providing these replacements)."),
                         s.enableAssetReferencePatching);
 
+                    s.enableMonoScriptReferencePatching = EditorGUILayout.Toggle(
+                        new GUIContent("Patch MonoScript References",
+                        "Enable replacing authoring MonoBehaviour scripts with in-game MonoScripts supplied by patch providers."),
+                        s.enableMonoScriptReferencePatching);
+
                     EditorGUILayout.Space(6);
 
                     EditorGUILayout.LabelField("Folders to copy into the mod folder during the export process", EditorStyles.boldLabel);

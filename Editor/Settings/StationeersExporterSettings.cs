@@ -76,6 +76,12 @@ namespace stationeers.modding.exporter
         /// </summary>
         public bool enableAssetReferencePatching = false;
 
+        /// <summary>
+        /// Enables export-time replacement of authoring MonoBehaviour script
+        /// references with MonoScripts from external Player SerializedFiles.
+        /// </summary>
+        public bool enableMonoScriptReferencePatching = false;
+
         // Default export folder list
 
         /// <summary>

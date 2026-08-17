@@ -318,16 +318,27 @@ namespace stationeers.modding.exporter
             IReadOnlyList<ResolvedAssetReferencePatch> patches =
                 Array.Empty<ResolvedAssetReferencePatch>();
 
+            IReadOnlyList<ResolvedMonoScriptReferencePatch> monoScriptPatches =
+                Array.Empty<ResolvedMonoScriptReferencePatch>();
+
             bool patchingEnabled =
                 StationeersExporterSettings
                     .instance
                     .enableAssetReferencePatching;
 
+            bool monoScriptPatchingEnabled =
+                StationeersExporterSettings
+                    .instance
+                    .enableMonoScriptReferencePatching;
+
             manifest.assetReferencePatching.enabled =
                 patchingEnabled;
 
+            manifest.monoScriptReferencePatching.enabled =
+                monoScriptPatchingEnabled;
+
             // ------------------------------------------------------------
-            // Collect patch mappings
+            // Collect asset-reference patch mappings
             // ------------------------------------------------------------
 
             if (patchingEnabled)
@@ -370,6 +381,58 @@ namespace stationeers.modding.exporter
             }
 
             // ------------------------------------------------------------
+            // Collect MonoScript-reference patch mappings
+            // ------------------------------------------------------------
+
+            if (monoScriptPatchingEnabled)
+            {
+                var collectedMonoScriptPatches =
+                    MonoScriptReferencePatchRegistry.Collect();
+
+                monoScriptPatches =
+                    MonoScriptReferencePatchRegistry.Resolve(
+                        collectedMonoScriptPatches);
+
+                manifest.monoScriptReferencePatching.mappingCount =
+                    monoScriptPatches.Count;
+
+                foreach (var patch in monoScriptPatches)
+                {
+                    manifest.monoScriptReferencePatching.mappings.Add(
+                        new MonoScriptReferencePatchManifestEntry
+                        {
+                            proxyAssembly = patch.ProxyAssemblyName,
+                            proxyNamespace = patch.ProxyNamespace,
+                            proxyClass = patch.ProxyClassName,
+                            targetAssembly =
+                                patch.Source.TargetAssemblyName,
+                            targetNamespace =
+                                patch.Source.TargetNamespace,
+                            targetClass =
+                                patch.Source.TargetClassName,
+                            targetSerializedFile =
+                                patch.Source.TargetSerializedFile,
+                            targetPathId =
+                                patch.Source.TargetPathId
+                        });
+                }
+
+                Debug.Log(
+                    $"MonoScript reference patching: " +
+                    $"{monoScriptPatches.Count} mapping(s).");
+            }
+
+            bool hasAssetReferencePatches =
+                patchingEnabled && patches.Count > 0;
+
+            bool hasMonoScriptReferencePatches =
+                monoScriptPatchingEnabled && monoScriptPatches.Count > 0;
+
+            bool hasBundlePostProcessing =
+                hasAssetReferencePatches ||
+                hasMonoScriptReferencePatches;
+
+            // ------------------------------------------------------------
             // Build AssetBundles
             // ------------------------------------------------------------
 
@@ -377,28 +440,20 @@ namespace stationeers.modding.exporter
 
             try
             {
-                if (patchingEnabled && patches.Count > 0)
+                if (hasBundlePostProcessing)
                 {
-                    // Restore the pristine Unity-built bundle before invoking
-                    // Unity's incremental AssetBundle build.
+                    // Restore Unity's pristine output before invoking the
+                    // incremental AssetBundle build. This is shared by both
+                    // ordinary asset-reference patching and MonoScript patching
+                    // so Unity never sees an already post-processed bundle as
+                    // its incremental-build input.
                     //
-                    // If no pristine cache exists, force exactly one rebuild so
-                    // Unity cannot accidentally reuse an already-patched output.
+                    // If no pristine cache exists, force exactly one rebuild.
                     bool restoredPristine =
                         AssetReferencePatchCache
                             .RestorePristineBundle(
                                 assetsBundlePath,
                                 platform);
-
-                    // Registered proxy assets are explicit roots of the real
-                    // assets bundle so their actual PathIDs can later be obtained
-                    // directly from AssetBundle.m_Container.
-                    var buildMap =
-                        AssetReferencePatchBuildMap.Create(
-                            Sanitize(PlayerSettings.productName),
-                            assetPaths,
-                            scenePaths,
-                            patches);
 
                     var buildOptions =
                         restoredPristine
@@ -406,12 +461,35 @@ namespace stationeers.modding.exporter
                             : BuildAssetBundleOptions
                                 .ForceRebuildAssetBundle;
 
-                    abManifest =
-                        BuildPipeline.BuildAssetBundles(
-                            subDir,
-                            buildMap,
-                            buildOptions,
-                            BuildTarget.StandaloneWindows);
+                    if (hasAssetReferencePatches)
+                    {
+                        // Registered ordinary proxy assets are explicit roots
+                        // so their actual bundle PathIDs can be read from
+                        // AssetBundle.m_Container. MonoScript proxies do not
+                        // need this: they are serialized through the prefabs or
+                        // ScriptableObjects that use their components.
+                        var buildMap =
+                            AssetReferencePatchBuildMap.Create(
+                                Sanitize(PlayerSettings.productName),
+                                assetPaths,
+                                scenePaths,
+                                patches);
+
+                        abManifest =
+                            BuildPipeline.BuildAssetBundles(
+                                subDir,
+                                buildMap,
+                                buildOptions,
+                                BuildTarget.StandaloneWindows);
+                    }
+                    else
+                    {
+                        abManifest =
+                            BuildPipeline.BuildAssetBundles(
+                                subDir,
+                                buildOptions,
+                                BuildTarget.StandaloneWindows);
+                    }
                 }
                 else
                 {
@@ -438,12 +516,10 @@ namespace stationeers.modding.exporter
             }
 
             // ------------------------------------------------------------
-            // Patch assets bundle
+            // Post-process assets bundle
             // ------------------------------------------------------------
 
-            if (abManifest != null &&
-                patchingEnabled &&
-                patches.Count > 0)
+            if (abManifest != null && hasBundlePostProcessing)
             {
                 // Use Unity's own content hash rather than hashing the
                 // complete bundle file ourselves.
@@ -453,87 +529,118 @@ namespace stationeers.modding.exporter
                         .ToString();
 
                 // IMPORTANT:
-                // Save this BEFORE patching. This is Unity's pristine output
-                // and will be restored before the next incremental build.
+                // Save this BEFORE any post-processing. This is Unity's
+                // pristine output and is restored before the next incremental
+                // build.
                 AssetReferencePatchCache.SavePristineBundleIfChanged(
                     assetsBundlePath,
                     platform,
                     unityBundleHash);
 
-                string patchKey =
-                    AssetReferencePatchCache.ComputePatchKey(
-                        unityBundleHash,
-                        patches);
-
-                AssetReferenceBundlePatchResult patchResult;
-
                 // --------------------------------------------------------
-                // Patched-output cache
+                // Ordinary asset-reference patching
                 // --------------------------------------------------------
 
-                if (AssetReferencePatchCache
-                    .TryRestorePatchedBundleWithMetadata(
-                        patchKey,
-                        assetsBundlePath,
-                        out patchResult))
+                if (hasAssetReferencePatches)
                 {
-                    manifest.assetReferencePatching.cacheHit =
-                        true;
-
-                    Debug.Log(
-                        "Asset reference patching: cache hit.");
-                }
-                else
-                {
-                    manifest.assetReferencePatching.cacheHit =
-                        false;
-
-                    patchResult =
-                        AssetReferenceBundlePatcher.Patch(
-                            assetsBundlePath,
+                    string patchKey =
+                        AssetReferencePatchCache.ComputePatchKey(
+                            unityBundleHash,
                             patches);
 
-                    AssetReferencePatchCache.SavePatchedBundle(
-                        patchKey,
-                        assetsBundlePath);
+                    AssetReferenceBundlePatchResult patchResult;
 
-                    AssetReferencePatchCache.SavePatchMetadata(
-                        patchKey,
-                        Path.GetFileName(assetsBundlePath),
-                        patchResult);
+                    if (AssetReferencePatchCache
+                        .TryRestorePatchedBundleWithMetadata(
+                            patchKey,
+                            assetsBundlePath,
+                            out patchResult))
+                    {
+                        manifest.assetReferencePatching.cacheHit =
+                            true;
 
-                    Debug.Log(
-                        "Asset reference patching: cache updated.");
+                        Debug.Log(
+                            "Asset reference patching: cache hit.");
+                    }
+                    else
+                    {
+                        manifest.assetReferencePatching.cacheHit =
+                            false;
+
+                        patchResult =
+                            AssetReferenceBundlePatcher.Patch(
+                                assetsBundlePath,
+                                patches);
+
+                        // Save the asset-patched output before the MonoScript
+                        // pass. This keeps the existing cache independent of
+                        // MonoScript mappings; the script pass is cheap and is
+                        // intentionally reapplied every export.
+                        AssetReferencePatchCache.SavePatchedBundle(
+                            patchKey,
+                            assetsBundlePath);
+
+                        AssetReferencePatchCache.SavePatchMetadata(
+                            patchKey,
+                            Path.GetFileName(assetsBundlePath),
+                            patchResult);
+
+                        Debug.Log(
+                            "Asset reference patching: cache updated.");
+                    }
+
+                    manifest
+                        .assetReferencePatching
+                        .rewrittenReferenceCount =
+                            patchResult.RewrittenReferenceCount;
+
+                    manifest
+                        .assetReferencePatching
+                        .removedProxyCount =
+                            patchResult.RemovedProxyCount;
+
+                    if (patchResult.RemovedProxyCount > 0)
+                    {
+                        var removedPaths =
+                            new HashSet<string>(
+                                patchResult.RemovedProxyAssetPaths,
+                                StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var mapping in
+                                 manifest.assetReferencePatching.mappings)
+                        {
+                            mapping.proxyRemoved =
+                                removedPaths.Contains(
+                                    mapping.proxyAssetPath);
+                        }
+                    }
                 }
 
                 // --------------------------------------------------------
-                // Manifest results
+                // MonoScript-reference patching
                 // --------------------------------------------------------
 
-                manifest
-                    .assetReferencePatching
-                    .rewrittenReferenceCount =
-                        patchResult.RewrittenReferenceCount;
-
-                manifest
-                    .assetReferencePatching
-                    .removedProxyCount =
-                        patchResult.RemovedProxyCount;
-
-                if (patchResult.RemovedProxyCount > 0)
+                if (hasMonoScriptReferencePatches)
                 {
-                    var removedPaths =
-                        new HashSet<string>(
-                            patchResult.RemovedProxyAssetPaths,
-                            StringComparer.OrdinalIgnoreCase);
+                    var monoScriptPatchResult =
+                        MonoScriptReferenceBundlePatcher.Patch(
+                            assetsBundlePath,
+                            monoScriptPatches);
 
-                    foreach (var mapping in
-                             manifest.assetReferencePatching.mappings)
-                    {
-                        mapping.proxyRemoved =
-                            removedPaths.Contains(
-                                mapping.proxyAssetPath);
-                    }
+                    manifest
+                        .monoScriptReferencePatching
+                        .matchedMappingCount =
+                            monoScriptPatchResult.MatchedMappingCount;
+
+                    manifest
+                        .monoScriptReferencePatching
+                        .rewrittenScriptTypeCount =
+                            monoScriptPatchResult.RewrittenScriptTypeCount;
+
+                    manifest
+                        .monoScriptReferencePatching
+                        .rewrittenMonoBehaviourCount =
+                            monoScriptPatchResult.RewrittenMonoBehaviourCount;
                 }
             }
 
